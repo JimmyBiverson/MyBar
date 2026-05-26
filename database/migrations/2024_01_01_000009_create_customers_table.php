@@ -1,0 +1,36 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('customers', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('phone')->nullable();
+            $table->string('email')->nullable();
+            $table->text('address')->nullable();
+            $table->string('city')->nullable();
+            $table->string('tax_id')->nullable();
+            $table->decimal('opening_balance', 12, 2)->default(0);
+            $table->decimal('balance', 12, 2)->default(0);
+            $table->integer('loyalty_points')->default(0);
+            $table->foreignId('branch_id')->constrained('branches')->onDelete('cascade');
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+
+            $table->index('is_active');
+            $table->index('branch_id');
+            $table->index('phone');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('customers');
+    }
+};
