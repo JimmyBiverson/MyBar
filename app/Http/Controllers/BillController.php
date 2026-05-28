@@ -33,7 +33,7 @@ class BillController extends Controller
             $query->where('branch_id', $branchId);
         }
 
-        $bills = $query->latest()->paginate(15);
+        $bills = $query->with('items')->latest()->paginate(15);
 
         return view('billing.index', compact('bills'));
     }

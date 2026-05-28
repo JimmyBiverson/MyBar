@@ -37,9 +37,12 @@ class OrderController extends Controller
 
     public function create()
     {
-        $products = Product::where('is_active', true)->get();
+        $branchId = auth()->user()->branch_id;
+        $products = Product::where('is_active', true)
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->get();
         $categories = Category::where('is_active', true)->get();
-        $customers = Customer::all();
+        $customers = Customer::when($branchId, fn ($q) => $q->where('branch_id', $branchId))->get();
 
         return view('orders.form', compact('products', 'categories', 'customers'));
     }

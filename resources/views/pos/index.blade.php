@@ -383,7 +383,7 @@
                 if (data.success) { this.resetCart(); Swal.fire('Held', 'Bill held successfully', 'success'); }
             },
             async resumeHold(id) {
-                const resp = await fetch('/pos/resume/' + id);
+                const resp = await fetch('{{ route('pos.resume', ['bill' => 'BILL_ID']) }}'.replace('BILL_ID', id));
                 const data = await resp.json();
                 if (data.success) {
                     this.cart = data.items;
@@ -420,7 +420,7 @@
                 if (data.success) {
                     this.resetCart();
                     Swal.fire({ icon: 'success', title: 'Payment Successful', text: 'Receipt #' + data.receipt_no }).then(() => {
-                        window.open('/receipts/' + data.bill_id + '/print', '_blank');
+                        window.open('{{ url('billing') }}/' + data.bill_id + '/print', '_blank');
                     });
                     this.fetchPendingOrders();
                 } else {

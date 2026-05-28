@@ -214,10 +214,11 @@
             },
             async updateStatus(orderId, status) {
                 try {
-                    const resp = await fetch('{{ route('kitchen.update-status') }}', {
-                        method: 'POST',
+                    const url = '{{ route('kitchen.update-status', ['order' => 'ORDER_ID']) }}'.replace('ORDER_ID', orderId);
+                    const resp = await fetch(url, {
+                        method: 'PUT',
                         headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                        body: JSON.stringify({ order_id: orderId, status })
+                        body: JSON.stringify({ status })
                     });
                     const data = await resp.json();
                     if (data.success) this.fetchOrders();

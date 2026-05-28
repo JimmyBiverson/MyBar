@@ -82,7 +82,8 @@ class BranchController extends Controller
             return back()->with('error', 'You are not authorized to switch to this branch.');
         }
 
-        session(['branch_id' => $branch->id, 'branch_name' => $branch->name]);
+        $user->update(['branch_id' => $branch->id]);
+        session(['branch_name' => $branch->name]);
 
         return back()->with('success', 'Switched to ' . $branch->name);
     }

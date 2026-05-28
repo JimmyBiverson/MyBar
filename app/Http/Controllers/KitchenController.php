@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\OrderItem;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class KitchenController extends Controller
 {
@@ -46,27 +47,39 @@ class KitchenController extends Controller
         return response()->json(['orders' => $orders]);
     }
 
-    public function updateStatus(Request $request, $id)
+    public function updateStatus(Request $request, Order $order)
     {
         $request->validate([
-            'status' => 'required|string|in:pending,preparing,ready,cancelled',
+            'status' => 'required|string|in:pending,preparing,ready,served,cancelled',
         ]);
 
         try {
-            $item = OrderItem::findOrFail($id);
-            $item->update(['status' => $request->status]);
+            $status = $request->status;
 
-            $order = $item->order;
-            $allItemsReady = $order->items()->whereNotIn('status', ['ready', 'cancelled'])->count() === 0;
-
-            if ($allItemsReady) {
+            if ($status === 'preparing') {
+                $order->items()->where('status', 'pending')->update(['status' => 'preparing']);
+                $order->update(['status' => 'preparing']);
+            } elseif ($status === 'ready') {
+                $order->items()->whereIn('status', ['pending', 'preparing'])->update(['status' => 'ready']);
                 $order->update(['status' => 'ready']);
+            } elseif ($status === 'served') {
+                $order->items()->update(['status' => 'served']);
+                $order->update(['status' => 'served', 'served_at' => Carbon::now()]);
+            } else {
+                $order->update(['status' => $status]);
+            }
+
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true]);
             }
 
             return redirect()->route('kitchen.index')
-                ->with('success', 'Item status updated to ' . $request->status . '.');
+                ->with('success', 'Order status updated to ' . $status . '.');
         } catch (\Exception $e) {
-            return back()->with('error', 'Failed to update item status.');
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            }
+            return back()->with('error', 'Failed to update order status.');
         }
     }
 }

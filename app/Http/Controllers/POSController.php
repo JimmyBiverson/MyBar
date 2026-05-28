@@ -32,7 +32,10 @@ class POSController extends Controller
         $settings = Setting::whereIn('key', ['tax_rate', 'service_charge_rate', 'currency_symbol', 'currency_position'])
             ->pluck('value', 'key');
 
-        return view('pos.index', compact('products', 'categories', 'tables', 'customers', 'settings'));
+        $taxRate = (float) ($settings['tax_rate'] ?? 0);
+        $serviceChargeRate = (float) ($settings['service_charge_rate'] ?? 0);
+
+        return view('pos.index', compact('products', 'categories', 'tables', 'customers', 'settings', 'taxRate', 'serviceChargeRate'));
     }
 
     public function pendingOrders()
@@ -117,6 +120,23 @@ class POSController extends Controller
             ]);
 
             return response()->json(['success' => true, 'bill_id' => $bill->id]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function resumeHold(Bill $bill)
+    {
+        try {
+            $items = json_decode($bill->items_data, true);
+
+            return response()->json([
+                'success' => true,
+                'items' => $items,
+                'customer_id' => $bill->customer_id,
+                'discount' => $bill->discount_value,
+                'discount_type' => $bill->discount_type ?? 'percentage',
+            ]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }

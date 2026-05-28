@@ -9,6 +9,16 @@ class Bill extends Model
 {
     use HasFactory;
 
+    protected $appends = [
+        'total',
+        'paid',
+        'balance',
+        'discount',
+        'tax',
+        'invoice_no',
+        'items_count',
+    ];
+
     protected $fillable = [
         'bill_number',
         'order_id',
@@ -77,6 +87,41 @@ class Bill extends Model
     public function payments()
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function getTotalAttribute()
+    {
+        return $this->total_amount;
+    }
+
+    public function getPaidAttribute()
+    {
+        return $this->paid_amount;
+    }
+
+    public function getBalanceAttribute()
+    {
+        return max(0, $this->total_amount - $this->paid_amount);
+    }
+
+    public function getDiscountAttribute()
+    {
+        return $this->discount_value;
+    }
+
+    public function getTaxAttribute()
+    {
+        return $this->tax_amount;
+    }
+
+    public function getInvoiceNoAttribute()
+    {
+        return $this->bill_number;
+    }
+
+    public function getItemsCountAttribute()
+    {
+        return $this->items->count();
     }
 
     public static function generateBillNumber()

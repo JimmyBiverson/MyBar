@@ -42,6 +42,9 @@ Route::middleware('guest')->group(function () {
     Route::post('/register', [RegisterController::class, 'register']);
     Route::get('/forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
     Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+    Route::get('/reset-password/{token}', function ($token) {
+        return view('auth.reset-password', ['token' => $token, 'email' => request('email')]);
+    })->name('password.reset');
     Route::post('/reset-password', [App\Http\Controllers\Auth\ResetPasswordController::class, 'reset'])->name('password.update');
 });
 
@@ -61,6 +64,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/payment', [POSController::class, 'payment'])->name('payment');
         Route::post('/orders/{order}/accept', [POSController::class, 'acceptOrder'])->name('accept-order');
         Route::post('/order-items/unavailable', [POSController::class, 'markItemUnavailable'])->name('item-unavailable');
+        Route::get('/resume/{bill}', [POSController::class, 'resumeHold'])->name('resume');
     });
 
     Route::prefix('products')->name('products.')->group(function () {
@@ -165,7 +169,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('kitchen')->name('kitchen.')->group(function () {
         Route::get('/', [KitchenController::class, 'index'])->name('index');
         Route::get('/orders', [KitchenController::class, 'getOrders'])->name('orders');
-        Route::put('/items/{orderItem}/status', [KitchenController::class, 'updateStatus'])->name('update-status');
+        Route::put('/orders/{order}/status', [KitchenController::class, 'updateStatus'])->name('update-status');
     });
 
     Route::prefix('waiter')->name('waiter.')->group(function () {

@@ -60,11 +60,6 @@ class Product extends Model
         return $this->hasMany(Batch::class);
     }
 
-    public function inventoryLogs()
-    {
-        return $this->hasMany(InventoryLog::class);
-    }
-
     public function stockMovements()
     {
         return $this->hasMany(StockMovement::class);

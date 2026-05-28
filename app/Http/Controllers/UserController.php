@@ -18,6 +18,7 @@ class UserController extends Controller
                     ->orWhere('email', 'like', "%{$request->search}%");
             }))
             ->when($request->role_id, fn ($q) => $q->where('role_id', $request->role_id))
+            ->when($branchId = auth()->user()->branch_id, fn ($q) => $q->where('branch_id', $branchId))
             ->orderBy('name')
             ->paginate(15);
 
