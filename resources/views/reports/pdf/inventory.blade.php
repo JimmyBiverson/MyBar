@@ -23,7 +23,7 @@
             <tr><th>Product</th><th>Category</th><th class="text-right">Stock</th><th class="text-right">Cost Price</th><th class="text-right">Stock Value</th></tr>
         </thead>
         <tbody>
-            @foreach($products as $product)
+            @foreach($products ?? [] as $product)
             <tr>
                 <td>{{ $product->name }}</td>
                 <td>{{ $product->category->name ?? 'N/A' }}</td>

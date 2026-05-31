@@ -30,6 +30,15 @@ class Order extends Model
         'progress_label',
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'received_at' => 'datetime',
+            'served_at' => 'datetime',
+            'completed_at' => 'datetime',
+        ];
+    }
+
     public function table()
     {
         return $this->belongsTo(Table::class);
@@ -67,7 +76,7 @@ class Order extends Model
 
     public function getProgressAttribute()
     {
-        $steps = ['pending' => 1, 'confirmed' => 2, 'preparing' => 2, 'ready' => 3, 'served' => 4, 'completed' => 5];
+        $steps = ['pending' => 1, 'confirmed' => 2, 'preparing' => 2, 'ready' => 3, 'served' => 4, 'completed' => 5, 'cancelled' => 0];
         return $steps[$this->status] ?? 1;
     }
 

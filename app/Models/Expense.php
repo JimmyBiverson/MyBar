@@ -28,6 +28,11 @@ class Expense extends Model
         ];
     }
 
+    public function getDateAttribute()
+    {
+        return $this->expense_date ?? $this->created_at;
+    }
+
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');

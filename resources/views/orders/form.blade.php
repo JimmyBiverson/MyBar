@@ -24,7 +24,7 @@
                     <label class="form-label">Customer</label>
                     <select class="form-select @error('customer_id') is-invalid @enderror" name="customer_id">
                         <option value="">Walk-in</option>
-                        @foreach($customers as $customer)
+                        @foreach($customers ?? [] as $customer)
                             <option value="{{ $customer->id }}" {{ old('customer_id') == $customer->id ? 'selected' : '' }}>{{ $customer->name }}</option>
                         @endforeach
                     </select>
@@ -53,7 +53,7 @@
                             <td>
                                 <select class="form-select form-select-sm" name="items[0][product_id]" required>
                                     <option value="">Select Product</option>
-                                    @foreach($products as $product)
+                                    @foreach($products ?? [] as $product)
                                         <option value="{{ $product->id }}">{{ $product->name }}</option>
                                     @endforeach
                                 </select>

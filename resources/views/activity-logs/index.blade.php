@@ -12,7 +12,7 @@
             </div>
             <select class="form-select form-select-sm" id="actionFilter" style="max-width:150px;">
                 <option value="">All Actions</option>
-                @foreach($actions as $action)
+                @foreach($actions ?? [] as $action)
                     <option value="{{ $action }}">{{ ucfirst($action) }}</option>
                 @endforeach
             </select>

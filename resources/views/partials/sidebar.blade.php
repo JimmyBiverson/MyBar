@@ -16,19 +16,19 @@
                 <i class="fas fa-th-large"></i>
                 <span>Dashboard</span>
             </a>
-            @if(auth()->user()->isAdmin() || auth()->user()->isManager())
+            @if(auth()->user()?->isAdmin() || auth()->user()?->isManager())
             <a href="{{ route('tables.index') }}" class="menu-item {{ request()->routeIs('tables.*') ? 'active' : '' }}">
                 <i class="fas fa-chair"></i>
                 <span>Tables</span>
             </a>
             @endif
-            @if(auth()->user()->isAdmin() || auth()->user()->isManager() || auth()->user()->isCashier())
+            @if(auth()->user()?->isAdmin() || auth()->user()?->isManager() || auth()->user()?->isCashier())
             <a href="{{ route('pos.index') }}" class="menu-item {{ request()->routeIs('pos.*') ? 'active' : '' }}">
                 <i class="fas fa-cash-register"></i>
                 <span>POS Terminal</span>
             </a>
             @endif
-            @if(auth()->user()->isAdmin() || auth()->user()->isManager() || auth()->user()->isCashier() || auth()->user()->isAccountant())
+            @if(auth()->user()?->isAdmin() || auth()->user()?->isManager() || auth()->user()?->isCashier() || auth()->user()?->isAccountant())
             <a href="{{ route('billing.index') }}" class="menu-item {{ request()->routeIs('billing.*') ? 'active' : '' }}">
                 <i class="fas fa-receipt"></i>
                 <span>Sales</span>
@@ -36,7 +36,7 @@
             @endif
         </div>
 
-        @if(auth()->user()->isWaiter())
+        @if(auth()->user()?->isWaiter())
         <div class="menu-section">
             <div class="menu-label">Waiter</div>
             <a href="{{ route('waiter.index') }}" class="menu-item {{ request()->routeIs('waiter.index') ? 'active' : '' }}">
@@ -54,7 +54,7 @@
         </div>
         @endif
 
-        @if(auth()->user()->isAdmin() || auth()->user()->isManager() || auth()->user()->isStoreKeeper())
+        @if(auth()->user()?->isAdmin() || auth()->user()?->isManager() || auth()->user()?->isStoreKeeper())
         <div class="menu-section">
             <div class="menu-label">Inventory</div>
             <a href="{{ route('products.index') }}" class="menu-item {{ request()->routeIs('products.*') ? 'active' : '' }}">
@@ -80,7 +80,7 @@
         </div>
         @endif
 
-        @if(auth()->user()->isAdmin() || auth()->user()->isManager() || auth()->user()->isCashier() || auth()->user()->isStoreKeeper() || auth()->user()->isAccountant())
+        @if(auth()->user()?->isAdmin() || auth()->user()?->isManager() || auth()->user()?->isCashier() || auth()->user()?->isStoreKeeper() || auth()->user()?->isAccountant())
         <div class="menu-section">
             <div class="menu-label">People</div>
             <a href="{{ route('suppliers.index') }}" class="menu-item {{ request()->routeIs('suppliers.*') ? 'active' : '' }}">
@@ -94,20 +94,20 @@
         </div>
         @endif
 
-        @if(auth()->user()->isAdmin() || auth()->user()->isManager() || auth()->user()->isCashier() || auth()->user()->isKitchen())
+        @if(auth()->user()?->isAdmin() || auth()->user()?->isManager() || auth()->user()?->isCashier() || auth()->user()?->isKitchen())
         <div class="menu-section">
             <div class="menu-label">Operations</div>
             <a href="{{ route('orders.index') }}" class="menu-item {{ request()->routeIs('orders.*') ? 'active' : '' }}">
                 <i class="fas fa-clipboard-list"></i>
                 <span>Orders</span>
             </a>
-            @if(auth()->user()->isKitchen())
+            @if(auth()->user()?->isKitchen())
             <a href="{{ route('kitchen.index') }}" class="menu-item {{ request()->routeIs('kitchen.*') ? 'active' : '' }}">
                 <i class="fas fa-utensils"></i>
                 <span>Kitchen Display</span>
             </a>
             @endif
-            @if(auth()->user()->isAdmin() || auth()->user()->isManager() || auth()->user()->isAccountant())
+            @if(auth()->user()?->isAdmin() || auth()->user()?->isManager() || auth()->user()?->isAccountant())
             <a href="{{ route('expenses.index') }}" class="menu-item {{ request()->routeIs('expenses.*') ? 'active' : '' }}">
                 <i class="fas fa-money-bill-wave"></i>
                 <span>Expenses</span>
@@ -116,7 +116,7 @@
         </div>
         @endif
 
-        @if(auth()->user()->isAdmin() || auth()->user()->isManager() || auth()->user()->isAccountant() || auth()->user()->isStoreKeeper())
+        @if(auth()->user()?->isAdmin() || auth()->user()?->isManager() || auth()->user()?->isAccountant() || auth()->user()?->isStoreKeeper())
         <div class="menu-section">
             <div class="menu-label">Reports</div>
             <a href="{{ route('reports.index') }}" class="menu-item {{ request()->routeIs('reports.*') ? 'active' : '' }}">
@@ -126,7 +126,7 @@
         </div>
         @endif
 
-        @if(auth()->user()->isAdmin())
+        @if(auth()->user()?->isAdmin())
         <div class="menu-section">
             <div class="menu-label">Administration</div>
             <a href="{{ route('users.index') }}" class="menu-item {{ request()->routeIs('users.*') ? 'active' : '' }}">

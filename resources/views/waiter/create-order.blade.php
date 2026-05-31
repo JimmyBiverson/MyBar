@@ -16,7 +16,7 @@
                     <label class="form-label">Table <span class="text-danger">*</span></label>
                     <select class="form-select @error('table_id') is-invalid @enderror" name="table_id" required>
                         <option value="">Select Table</option>
-                        @foreach($tables as $table)
+                        @foreach($tables ?? [] as $table)
                             <option value="{{ $table->id }}" {{ request('table_id') == $table->id ? 'selected' : '' }}>{{ $table->name }}</option>
                         @endforeach
                     </select>
@@ -46,7 +46,7 @@
                             <td>
                                 <select class="form-select form-select-sm" name="items[0][product_id]" required>
                                     <option value="">Select Product</option>
-                                    @foreach($products as $product)
+                                    @foreach($products ?? [] as $product)
                                         <option value="{{ $product->id }}">{{ $product->name }} ({{ number_format($product->selling_price) }})</option>
                                     @endforeach
                                 </select>

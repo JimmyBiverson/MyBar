@@ -49,7 +49,7 @@
                 <div class="user-avatar">
                     <i class="fas fa-user-circle fa-lg"></i>
                 </div>
-                <span class="user-name d-none d-md-inline">{{ auth()->user()->name ?? 'User' }}</span>
+                <span class="user-name d-none d-md-inline">{{ optional(auth()->user())->name ?? 'User' }}</span>
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
                 <li>

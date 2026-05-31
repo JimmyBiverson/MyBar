@@ -112,9 +112,9 @@ class POSController extends Controller
                 'bill_number' => Bill::generateBillNumber(),
                 'items_data' => json_encode($request->items),
                 'customer_id' => $request->customer_id,
-                'discount' => $request->discount ?? 0,
+                'discount_value' => $request->discount ?? 0,
                 'discount_type' => $request->discount_type ?? 'percentage',
-                'status' => 'hold',
+                'payment_status' => 'hold',
                 'cashier_id' => auth()->id(),
                 'branch_id' => auth()->user()->branch_id,
             ]);

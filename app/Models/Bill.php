@@ -38,6 +38,7 @@ class Bill extends Model
         'payment_status',
         'notes',
         'branch_id',
+        'items_data',
     ];
 
     protected function casts(): array

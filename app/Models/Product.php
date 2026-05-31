@@ -37,6 +37,11 @@ class Product extends Model
             'cost_price' => 'decimal:2',
             'selling_price' => 'decimal:2',
             'wholesale_price' => 'decimal:2',
+            'current_stock' => 'decimal:2',
+            'opening_stock' => 'decimal:2',
+            'stock_value' => 'decimal:2',
+            'reorder_level' => 'decimal:2',
+            'tax_rate' => 'decimal:2',
         ];
     }
 

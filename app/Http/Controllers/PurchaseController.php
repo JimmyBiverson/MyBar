@@ -15,7 +15,7 @@ class PurchaseController extends Controller
     public function index(Request $request)
     {
         $query = Purchase::with('supplier', 'createdBy', 'branch')
-            ->where('branch_id', auth()->user()->branch_id);
+            ->where('branch_id', auth()->user()?->branch_id);
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
@@ -30,8 +30,8 @@ class PurchaseController extends Controller
 
     public function create()
     {
-        $suppliers = Supplier::where('branch_id', auth()->user()->branch_id)->where('is_active', true)->get();
-        $products = Product::where('branch_id', auth()->user()->branch_id)->where('is_active', true)->get();
+        $suppliers = Supplier::where('branch_id', auth()->user()?->branch_id)->where('is_active', true)->get();
+        $products = Product::where('branch_id', auth()->user()?->branch_id)->where('is_active', true)->get();
         return view('purchases.create', compact('suppliers', 'products'));
     }
 
@@ -58,7 +58,7 @@ class PurchaseController extends Controller
                     'status' => 'pending',
                     'notes' => $validated['notes'] ?? null,
                     'created_by' => auth()->id(),
-                    'branch_id' => auth()->user()->branch_id,
+                    'branch_id' => auth()->user()?->branch_id,
                 ]);
 
                 foreach ($validated['items'] as $item) {
@@ -70,7 +70,7 @@ class PurchaseController extends Controller
                         'subtotal' => $item['quantity'] * $item['cost_price'],
                     ]);
 
-                    $product = Product::find($item['product_id']);
+                    $product = Product::findOrFail($item['product_id']);
                     $product->increment('current_stock', $item['quantity']);
                     $product->increment('stock_value', $item['quantity'] * $item['cost_price']);
 
@@ -82,7 +82,7 @@ class PurchaseController extends Controller
                         'reference_id' => $purchase->id,
                         'notes' => 'Purchase #' . $purchase->reference_no,
                         'created_by' => auth()->id(),
-                        'branch_id' => auth()->user()->branch_id,
+                        'branch_id' => auth()->user()?->branch_id,
                     ]);
                 }
             });
@@ -95,8 +95,8 @@ class PurchaseController extends Controller
 
     public function edit(Purchase $purchase)
     {
-        $suppliers = Supplier::where('branch_id', auth()->user()->branch_id)->where('is_active', true)->get();
-        $products = Product::where('branch_id', auth()->user()->branch_id)->where('is_active', true)->get();
+        $suppliers = Supplier::where('branch_id', auth()->user()?->branch_id)->where('is_active', true)->get();
+        $products = Product::where('branch_id', auth()->user()?->branch_id)->where('is_active', true)->get();
         $purchase->load('items.product');
         return view('purchases.edit', compact('purchase', 'suppliers', 'products'));
     }
@@ -114,7 +114,7 @@ class PurchaseController extends Controller
 
             if ($request->status === 'received' && $purchase->status !== 'received') {
                 foreach ($purchase->items as $item) {
-                    $product = Product::find($item->product_id);
+                    $product = Product::findOrFail($item->product_id);
                     $product->increment('current_stock', $item->quantity);
                     $product->increment('stock_value', $item->quantity * $item->cost_price);
 
@@ -126,7 +126,7 @@ class PurchaseController extends Controller
                         'reference_id' => $purchase->id,
                         'notes' => 'Purchase received #' . $purchase->reference_no,
                         'created_by' => auth()->id(),
-                        'branch_id' => auth()->user()->branch_id,
+                        'branch_id' => auth()->user()?->branch_id,
                     ]);
                 }
             }

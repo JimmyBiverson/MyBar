@@ -270,9 +270,8 @@ class WaiterController extends Controller
             'subtotal' => $order->items->sum('subtotal'),
             'total_amount' => $order->items->sum('subtotal'),
             'payment_status' => 'unpaid',
-            'status' => 'pending',
             'waiter_id' => auth()->id(),
-            'branch_id' => auth()->user()->branch_id,
+            'branch_id' => auth()->user()?->branch_id,
         ]);
 
         foreach ($order->items as $item) {

@@ -29,7 +29,7 @@
             <tr><th>Method</th><th class="text-right">Count</th><th class="text-right">Total</th></tr>
         </thead>
         <tbody>
-            @foreach($paymentMethods as $pm)
+            @foreach($paymentMethods ?? [] as $pm)
             <tr><td>{{ ucfirst($pm->payment_method) }}</td><td class="text-right">{{ $pm->count }}</td><td class="text-right">{{ number_format($pm->total, 0) }}</td></tr>
             @endforeach
         </tbody>

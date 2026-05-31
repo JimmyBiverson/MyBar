@@ -52,7 +52,6 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
-            'pin_code' => 'hashed',
         ];
     }
 
@@ -88,7 +87,7 @@ class User extends Authenticatable
 
     public function isKitchen(): bool
     {
-        return $this->role?->name === 'Kitchen';
+        return $this->role?->name === 'Kitchen Staff';
     }
 
     public function isStoreKeeper(): bool

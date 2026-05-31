@@ -46,7 +46,7 @@ class BillController extends Controller
 
     public function print(Bill $bill)
     {
-        $bill->load(['items.product', 'customer', 'order']);
+        $bill->load(['items.product', 'customer', 'cashier', 'order']);
         $settings = Setting::whereIn('key', [
             'tax_rate', 'service_charge_rate', 'currency_symbol',
             'currency_position', 'site_name', 'site_address', 'site_phone',
@@ -57,7 +57,7 @@ class BillController extends Controller
 
     public function exportPdf(Bill $bill)
     {
-        $bill->load(['items.product', 'customer', 'order']);
+        $bill->load(['items.product', 'customer', 'cashier', 'order']);
         $settings = Setting::whereIn('key', [
             'tax_rate', 'service_charge_rate', 'currency_symbol',
             'currency_position', 'site_name', 'site_address', 'site_phone',

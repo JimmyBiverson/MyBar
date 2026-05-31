@@ -4,6 +4,11 @@ use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
+// Fix SCRIPT_NAME for subdirectory (e.g., http://localhost/mybar/)
+if (str_contains($_SERVER['SCRIPT_NAME'] ?? '', '/public/')) {
+    $_SERVER['SCRIPT_NAME'] = str_replace('/public/', '/', $_SERVER['SCRIPT_NAME']);
+}
+
 // Determine if the application is in maintenance mode...
 if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
     require $maintenance;

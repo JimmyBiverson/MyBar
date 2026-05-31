@@ -40,7 +40,7 @@ class DashboardController extends Controller
 
         $todayFromOrders = Order::whereIn('orders.status', ['confirmed', 'preparing', 'ready', 'served', 'completed'])
             ->whereDate('orders.created_at', $today)
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->when($branchId, fn ($q) => $q->where('orders.branch_id', $branchId))
             ->join('order_items', 'orders.id', '=', 'order_items.order_id')
             ->sum('order_items.subtotal');
         $todaySales = $todayFromBills + $todayFromOrders;
@@ -51,14 +51,14 @@ class DashboardController extends Controller
 
         $monthlyFromOrders = Order::whereIn('orders.status', ['confirmed', 'preparing', 'ready', 'served', 'completed'])
             ->whereDate('orders.created_at', '>=', $startOfMonth)
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->when($branchId, fn ($q) => $q->where('orders.branch_id', $branchId))
             ->join('order_items', 'orders.id', '=', 'order_items.order_id')
             ->sum('order_items.subtotal');
         $monthlySales = $monthlyFromBills + $monthlyFromOrders;
 
         $totalSales = (clone $this->salesQuery($branchId)[0])->sum('total_amount')
             + Order::whereIn('orders.status', ['confirmed', 'preparing', 'ready', 'served', 'completed'])
-                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+                ->when($branchId, fn ($q) => $q->where('orders.branch_id', $branchId))
                 ->join('order_items', 'orders.id', '=', 'order_items.order_id')
                 ->sum('order_items.subtotal');
 
@@ -67,7 +67,7 @@ class DashboardController extends Controller
             ->sum('total_amount');
         $yesterdayFromOrders = Order::whereIn('orders.status', ['confirmed', 'preparing', 'ready', 'served', 'completed'])
             ->whereDate('orders.created_at', now()->subDay()->toDateString())
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->when($branchId, fn ($q) => $q->where('orders.branch_id', $branchId))
             ->join('order_items', 'orders.id', '=', 'order_items.order_id')
             ->sum('order_items.subtotal');
         $yesterdaySales = $yesterdayFromBills + $yesterdayFromOrders;
@@ -84,7 +84,7 @@ class DashboardController extends Controller
         $lastMonthFromOrders = Order::whereIn('orders.status', ['confirmed', 'preparing', 'ready', 'served', 'completed'])
             ->whereDate('orders.created_at', '>=', $lastMonthStart)
             ->whereDate('orders.created_at', '<=', $lastMonthEnd)
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->when($branchId, fn ($q) => $q->where('orders.branch_id', $branchId))
             ->join('order_items', 'orders.id', '=', 'order_items.order_id')
             ->sum('order_items.subtotal');
         $lastMonthSales = $lastMonthFromBills + $lastMonthFromOrders;
@@ -151,7 +151,7 @@ class DashboardController extends Controller
 
         $orderChartRaw = Order::whereIn('orders.status', ['confirmed', 'preparing', 'ready', 'served', 'completed'])
             ->whereDate('orders.created_at', '>=', now()->subDays($chartDays))
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->when($branchId, fn ($q) => $q->where('orders.branch_id', $branchId))
             ->join('order_items', 'orders.id', '=', 'order_items.order_id')
             ->select(DB::raw('DATE(orders.created_at) as date'), DB::raw('SUM(order_items.subtotal) as total'))
             ->groupBy('date')
@@ -196,7 +196,7 @@ class DashboardController extends Controller
 
         $orderRaw = Order::whereIn('orders.status', ['confirmed', 'preparing', 'ready', 'served', 'completed'])
             ->whereDate('orders.created_at', '>=', now()->subDays($days))
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->when($branchId, fn ($q) => $q->where('orders.branch_id', $branchId))
             ->join('order_items', 'orders.id', '=', 'order_items.order_id')
             ->select(DB::raw('DATE(orders.created_at) as date'), DB::raw('SUM(order_items.subtotal) as total'))
             ->groupBy('date')

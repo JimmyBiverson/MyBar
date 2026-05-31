@@ -29,6 +29,11 @@ class Purchase extends Model
         ];
     }
 
+    public function getDateAttribute()
+    {
+        return $this->created_at;
+    }
+
     public function supplier()
     {
         return $this->belongsTo(Supplier::class);

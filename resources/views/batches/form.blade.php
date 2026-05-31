@@ -24,7 +24,7 @@
                             <label class="form-label">Product <span class="text-danger">*</span></label>
                             <select class="form-select @error('product_id') is-invalid @enderror" name="product_id" required>
                                 <option value="">Select Product</option>
-                                @foreach($products as $product)
+                                @foreach($products ?? [] as $product)
                                     <option value="{{ $product->id }}" {{ old('product_id', $batch->product_id ?? '') == $product->id ? 'selected' : '' }}>{{ $product->name }}</option>
                                 @endforeach
                             </select>
@@ -48,7 +48,7 @@
                             <label class="form-label">Supplier</label>
                             <select class="form-select @error('supplier_id') is-invalid @enderror" name="supplier_id">
                                 <option value="">Select Supplier</option>
-                                @foreach($suppliers as $supplier)
+                                @foreach($suppliers ?? [] as $supplier)
                                     <option value="{{ $supplier->id }}" {{ old('supplier_id', $batch->supplier_id ?? '') == $supplier->id ? 'selected' : '' }}>{{ $supplier->name }}</option>
                                 @endforeach
                             </select>
@@ -58,7 +58,7 @@
                             <label class="form-label">Purchase Reference</label>
                             <select class="form-select @error('purchase_id') is-invalid @enderror" name="purchase_id">
                                 <option value="">Select Purchase</option>
-                                @foreach($purchases as $purchase)
+                                @foreach($purchases ?? [] as $purchase)
                                     <option value="{{ $purchase->id }}" {{ old('purchase_id', $batch->purchase_id ?? '') == $purchase->id ? 'selected' : '' }}>{{ $purchase->reference_no }}</option>
                                 @endforeach
                             </select>
