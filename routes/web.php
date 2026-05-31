@@ -136,6 +136,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/{bill}', [BillController::class, 'show'])->name('show');
         Route::get('/{bill}/print', [BillController::class, 'print'])->name('print');
         Route::get('/{bill}/pdf', [BillController::class, 'exportPdf'])->name('pdf');
+        Route::get('/{bill}/receipt-content', [BillController::class, 'receiptContent'])->name('receipt-content');
     });
 
     Route::prefix('expenses')->name('expenses.')->group(function () {
@@ -185,6 +186,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/orders/serve', [WaiterController::class, 'markServed'])->name('orders.serve');
         Route::post('/orders/cancel', [WaiterController::class, 'cancelOrder'])->name('orders.cancel');
         Route::post('/orders/request-bill', [WaiterController::class, 'requestBill'])->name('orders.request-bill');
+        Route::post('/orders/pay', [WaiterController::class, 'processPayment'])->name('orders.pay');
     });
 
     Route::prefix('reports')->name('reports.')->group(function () {

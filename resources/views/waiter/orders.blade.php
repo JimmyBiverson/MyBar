@@ -128,6 +128,11 @@
                                         <i class="fas fa-receipt me-1"></i> Request Bill
                                     </button>
                                 </template>
+                                <template x-if="order.bill_requested && order.payment_status !== 'paid'">
+                                    <button class="btn btn-sm btn-primary" @click="openPayment(order)">
+                                        <i class="fas fa-credit-card me-1"></i> Pay Now
+                                    </button>
+                                </template>
                                 <template x-if="order.bill_requested">
                                     <span class="badge" :class="order.payment_status === 'paid' ? 'bg-success' : 'bg-warning text-dark'">
                                         <i class="fas" :class="order.payment_status === 'paid' ? 'fa-check-circle' : 'fa-clock'"></i>
@@ -156,8 +161,71 @@
             </div>
         </div>
     </div>
+
+    <div class="modal fade" id="paymentModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-credit-card me-2"></i>Process Payment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-4">
+                        <small class="text-muted">Total Amount</small>
+                        <h2 class="fw-bold text-primary" x-text="formatCurrency(paymentTotal)"></h2>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Payment Method</label>
+                        <div class="payment-methods">
+                            <input type="radio" class="btn-check" name="pmtMethod" id="waiterMethodCash" value="cash" x-model="paymentMethod" checked>
+                            <label class="btn btn-outline-primary" for="waiterMethodCash"><i class="fas fa-money-bill me-1"></i> Cash</label>
+                            <input type="radio" class="btn-check" name="pmtMethod" id="waiterMethodMobile" value="mobile_money" x-model="paymentMethod">
+                            <label class="btn btn-outline-primary" for="waiterMethodMobile"><i class="fas fa-mobile-screen me-1"></i> Mobile Money</label>
+                            <input type="radio" class="btn-check" name="pmtMethod" id="waiterMethodCard" value="card" x-model="paymentMethod">
+                            <label class="btn btn-outline-primary" for="waiterMethodCard"><i class="fas fa-credit-card me-1"></i> Card</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">Amount Received</label>
+                        <div class="input-group">
+                            <span class="input-group-text">UGX</span>
+                            <input type="number" class="form-control form-control-lg" x-model="amountReceived" min="0" step="any" placeholder="0.00">
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between py-2 px-3 rounded" style="background:#f8f9fa;">
+                        <span class="fw-semibold">Change Due</span>
+                        <span class="fw-bold fs-5" :class="changeDue >= 0 ? 'text-success' : 'text-danger'" x-text="formatCurrency(changeDue)"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary" @click="submitPayment()" :disabled="amountReceived < paymentTotal">
+                        <i class="fas fa-check me-1"></i> Complete Payment
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
+
+@push('styles')
+<style>
+    .payment-methods {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .payment-methods .btn {
+        flex: 1;
+        min-width: 100px;
+        white-space: nowrap;
+    }
+    .payment-methods .btn-outline-primary { border-color: #dee2e6; }
+    .btn-check:checked + .btn-outline-primary { background: #7367f0; border-color: #7367f0; color: #fff; }
+    .dark .modal-body .rounded { background: #1e2126 !important; }
+</style>
+@endpush
 
 @push('scripts')
 <script>
@@ -168,6 +236,10 @@
             orders: [],
             filterTable: '',
             refreshTimer: null,
+            paymentOrderId: null,
+            paymentTotal: 0,
+            paymentMethod: 'cash',
+            amountReceived: 0,
             newOrder: {
                 table_id: '',
                 customer_name: '',
@@ -264,6 +336,70 @@
                 });
                 Swal.fire({ icon: 'success', title: 'Bill Requested', text: 'The cashier has been notified' });
                 await this.fetchOrders();
+            },
+            get changeDue() {
+                return parseFloat(this.amountReceived || 0) - this.paymentTotal;
+            },
+            openPayment(order) {
+                this.paymentOrderId = order.id;
+                this.paymentTotal = order.total;
+                this.paymentMethod = 'cash';
+                this.amountReceived = order.total;
+                const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+                modal.show();
+            },
+            async submitPayment() {
+                if (!this.paymentOrderId || this.amountReceived < this.paymentTotal) return;
+                try {
+                    const resp = await fetch('{{ route('waiter.orders.pay') }}', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+                        body: JSON.stringify({ order_id: this.paymentOrderId, payment_method: this.paymentMethod, amount_received: this.amountReceived })
+                    });
+                    const data = await resp.json();
+                    if (data.success) {
+                        bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+                        this.paymentOrderId = null;
+                        this.paymentTotal = 0;
+                        await this.fetchOrders();
+                        this.showReceipt(data.bill_id, data.receipt_no);
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Payment Failed', text: data.message || 'Something went wrong' });
+                    }
+                } catch(e) {
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'Payment request failed' });
+                }
+            },
+            async showReceipt(billId, receiptNo) {
+                try {
+                    const r = await fetch('{{ url('billing') }}/' + billId + '/receipt-content');
+                    const d = await r.json();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Payment Successful',
+                        html: '<div class="mb-2 text-muted small">Receipt #' + receiptNo + '</div>' + d.html,
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="fas fa-print me-1"></i> Print Receipt',
+                        cancelButtonText: 'Close',
+                        width: 420,
+                        padding: '1rem',
+                    }).then(result => {
+                        if (result.isConfirmed) {
+                            this.printReceipt(billId);
+                        }
+                    });
+                } catch(e) {
+                    Swal.fire({ icon: 'success', title: 'Payment Successful', text: 'Receipt #' + receiptNo });
+                }
+            },
+            printReceipt(billId) {
+                const pw = window.open('', '_blank', 'width=400,height=600,menubar=no,location=no,status=no');
+                fetch('{{ url('billing') }}/' + billId + '/receipt-content')
+                    .then(r => r.json())
+                    .then(d => {
+                        pw.document.write('<!DOCTYPE html><html><head><title>Receipt</title></head><body>' + d.html + '<script>window.onload=function(){window.print();window.close();}<\/script></body></html>');
+                        pw.document.close();
+                    });
             },
             formatCurrency(val) {
                 const s = window.currencySettings || { symbol: 'UGX', position: 'before', thousand_separator: ',', decimal_separator: '.', decimal_digits: 0 };

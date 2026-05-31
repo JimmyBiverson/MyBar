@@ -42,7 +42,7 @@ class POSController extends Controller
     {
         $branchId = auth()->user()->branch_id;
 
-        $orders = Order::with(['items.product', 'table', 'waiter'])
+        $orders = Order::with(['items.product', 'table', 'waiter', 'customer'])
             ->whereIn('status', ['pending', 'confirmed'])
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->latest()
@@ -52,6 +52,7 @@ class POSController extends Controller
                 'order_number' => $o->order_number,
                 'table_name' => $o->table->name ?? 'Takeaway',
                 'waiter_name' => $o->waiter->name ?? 'N/A',
+                'customer_name' => $o->customer->name ?? null,
                 'items_count' => $o->items->count(),
                 'total' => $o->items->sum('subtotal'),
                 'status' => $o->status,
@@ -169,6 +170,7 @@ class POSController extends Controller
                 'payment_method' => $request->payment_method,
                 'payment_status' => 'paid',
                 'cashier_id' => auth()->id(),
+                'processed_by_role' => 'cashier',
                 'branch_id' => auth()->user()->branch_id,
             ]);
 

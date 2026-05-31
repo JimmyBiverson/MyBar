@@ -39,6 +39,7 @@ class Bill extends Model
         'notes',
         'branch_id',
         'items_data',
+        'processed_by_role',
     ];
 
     protected function casts(): array

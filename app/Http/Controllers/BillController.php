@@ -55,6 +55,18 @@ class BillController extends Controller
         return view('billing.print', compact('bill', 'settings'));
     }
 
+    public function receiptContent(Bill $bill)
+    {
+        $bill->load(['items.product', 'customer', 'cashier', 'order']);
+        $settings = Setting::whereIn('key', [
+            'tax_rate', 'service_charge_rate', 'currency_symbol',
+            'currency_position', 'site_name', 'site_address', 'site_phone',
+        ])->pluck('value', 'key');
+
+        $html = view('billing.receipt-partial', compact('bill', 'settings'))->render();
+        return response()->json(['html' => $html]);
+    }
+
     public function exportPdf(Bill $bill)
     {
         $bill->load(['items.product', 'customer', 'cashier', 'order']);

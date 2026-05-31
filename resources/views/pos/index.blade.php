@@ -83,6 +83,7 @@
                                 <span class="text-muted ms-1" x-text="order.table_name"></span>
                                 <br>
                                 <small class="text-muted" x-text="'Waiter: ' + order.waiter_name + ' | ' + order.items_count + ' items'"></small>
+                                    <small class="text-muted d-block" x-show="order.customer_name" x-text="'Customer: ' + order.customer_name"></small>
                                 <span class="badge ms-1" :class="order.status === 'pending' ? 'bg-warning text-dark' : 'bg-info'" x-text="order.status"></span>
                             </div>
                             <div class="text-end small">
@@ -419,13 +420,42 @@
                 const data = await resp.json();
                 if (data.success) {
                     this.resetCart();
-                    Swal.fire({ icon: 'success', title: 'Payment Successful', text: 'Receipt #' + data.receipt_no }).then(() => {
-                        window.open('{{ url('billing') }}/' + data.bill_id + '/print', '_blank');
-                    });
+                    this.showReceipt(data.bill_id, data.receipt_no);
                     this.fetchPendingOrders();
                 } else {
                     Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Payment failed' });
                 }
+            },
+            async showReceipt(billId, receiptNo) {
+                try {
+                    const r = await fetch('{{ url('billing') }}/' + billId + '/receipt-content');
+                    const d = await r.json();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Payment Successful',
+                        html: '<div class="mb-2 text-muted small">Receipt #' + receiptNo + '</div>' + d.html,
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="fas fa-print me-1"></i> Print Receipt',
+                        cancelButtonText: 'Close',
+                        width: 420,
+                        padding: '1rem',
+                    }).then(result => {
+                        if (result.isConfirmed) {
+                            this.printReceipt(billId);
+                        }
+                    });
+                } catch(e) {
+                    Swal.fire({ icon: 'success', title: 'Payment Successful', text: 'Receipt #' + receiptNo });
+                }
+            },
+            printReceipt(billId) {
+                const pw = window.open('', '_blank', 'width=400,height=600,menubar=no,location=no,status=no');
+                fetch('{{ url('billing') }}/' + billId + '/receipt-content')
+                    .then(r => r.json())
+                    .then(d => {
+                        pw.document.write('<!DOCTYPE html><html><head><title>Receipt</title></head><body>' + d.html + '<script>window.onload=function(){window.print();window.close();}<\/script></body></html>');
+                        pw.document.close();
+                    });
             }
         }
     }

@@ -171,6 +171,27 @@ class DashboardController extends Controller
         $chartLabels = $chartData->pluck('date');
         $chartValues = $chartData->pluck('total');
 
+        $paymentMethods = Bill::where('payment_status', 'paid')
+            ->whereDate('created_at', $today)
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->groupBy('payment_method')
+            ->selectRaw('payment_method, COUNT(*) as count, SUM(total_amount) as total')
+            ->get();
+
+        $topCustomers = Bill::select(
+            'customer_id',
+            DB::raw('COUNT(*) as visit_count'),
+            DB::raw('SUM(total_amount) as total_spent')
+        )
+            ->where('payment_status', 'paid')
+            ->whereDate('created_at', '>=', now()->startOfMonth())
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->with('customer')
+            ->groupBy('customer_id')
+            ->orderByDesc('total_spent')
+            ->take(5)
+            ->get();
+
         return view('dashboard.index', compact(
             'todaySales', 'monthlySales', 'totalSales',
             'todaySalesPercent', 'monthlySalesPercent',
@@ -178,6 +199,7 @@ class DashboardController extends Controller
             'lowStockCount', 'lowStockProducts',
             'recentTransactions', 'recentOrders', 'topProducts',
             'chartLabels', 'chartValues',
+            'paymentMethods', 'topCustomers',
         ));
     }
 

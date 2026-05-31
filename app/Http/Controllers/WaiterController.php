@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Bill;
+use App\Models\BillItem;
+use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -54,6 +56,7 @@ class WaiterController extends Controller
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.qty' => 'required|integer|min:1',
             'items.*.notes' => 'nullable|string',
+            'customer_name' => 'nullable|string|max:255',
         ]);
 
         try {
@@ -63,10 +66,20 @@ class WaiterController extends Controller
             $tableId = is_numeric($request->table_id) ? $request->table_id : null;
             $orderType = $tableId ? 'dine_in' : 'takeaway';
 
+            $customerId = null;
+            if ($request->filled('customer_name')) {
+                $customer = Customer::firstOrCreate(
+                    ['name' => $request->customer_name, 'branch_id' => auth()->user()->branch_id],
+                    ['is_active' => true]
+                );
+                $customerId = $customer->id;
+            }
+
             $order = Order::create([
                 'order_number' => Order::generateOrderNumber(),
                 'table_id' => $tableId,
                 'waiter_id' => auth()->id(),
+                'customer_id' => $customerId,
                 'status' => 'pending',
                 'order_type' => $orderType,
                 'notes' => $request->notes,
@@ -284,5 +297,72 @@ class WaiterController extends Controller
         }
 
         return response()->json(['success' => true, 'bill_id' => $bill->id]);
+    }
+
+    public function processPayment(Request $request)
+    {
+        $request->validate([
+            'order_id' => 'required|exists:orders,id',
+            'payment_method' => 'required|string',
+            'amount_received' => 'required|numeric|min:0',
+        ]);
+
+        $order = Order::with('items.product')
+            ->where('waiter_id', auth()->id())
+            ->findOrFail($request->order_id);
+
+        if ($order->status === 'completed' || $order->status === 'cancelled') {
+            return response()->json(['success' => false, 'message' => 'Order is already ' . $order->status], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $total = $order->items->sum('subtotal');
+            $paidAmount = $request->amount_received;
+            $changeAmount = max(0, $paidAmount - $total);
+
+            $bill = Bill::create([
+                'bill_number' => Bill::generateBillNumber(),
+                'order_id' => $order->id,
+                'customer_id' => $order->customer_id,
+                'subtotal' => $total,
+                'total_amount' => $total,
+                'paid_amount' => $paidAmount,
+                'change_amount' => $changeAmount,
+                'payment_method' => $request->payment_method,
+                'payment_status' => 'paid',
+                'waiter_id' => auth()->id(),
+                'processed_by_role' => 'waiter',
+                'branch_id' => auth()->user()->branch_id,
+            ]);
+
+            foreach ($order->items as $item) {
+                BillItem::create([
+                    'bill_id' => $bill->id,
+                    'product_id' => $item->product_id,
+                    'quantity' => $item->quantity,
+                    'price' => $item->price,
+                    'subtotal' => $item->subtotal,
+                ]);
+            }
+
+            $order->update(['status' => 'completed', 'completed_at' => now()]);
+
+            if ($order->table_id) {
+                Table::where('id', $order->table_id)->update(['status' => 'available']);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'bill_id' => $bill->id,
+                'receipt_no' => $bill->bill_number,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 }

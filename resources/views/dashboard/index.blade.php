@@ -81,6 +81,38 @@
         </div>
         <div class="col-xl-4">
             <div class="card">
+                <div class="card-header"><i class="fas fa-chart-pie me-2"></i>Today's Payment Methods</div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Method</th>
+                                    <th class="text-end">Count</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($paymentMethods ?? [] as $pm)
+                                <tr>
+                                    <td>{{ ucwords(str_replace('_', ' ', $pm->payment_method)) }}</td>
+                                    <td class="text-end">{{ $pm->count }}</td>
+                                    <td class="text-end">{{ number_format($pm->total, 0) }}</td>
+                                </tr>
+                                @empty
+                                <tr><td colspan="3" class="text-center text-muted py-3">No payments today</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-xl-8">
+            <div class="card">
                 <div class="card-header"><i class="fas fa-crown me-2"></i>Top 5 Selling Products</div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -103,6 +135,37 @@
                                 </tr>
                                 @empty
                                 <tr><td colspan="4" class="text-center text-muted py-3">No sales data yet</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4">
+            <div class="card">
+                <div class="card-header"><i class="fas fa-users me-2"></i>Top Customers (This Month)</div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Customer</th>
+                                    <th class="text-end">Visits</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($topCustomers ?? [] as $key => $tc)
+                                <tr>
+                                    <td>{{ $key + 1 }}</td>
+                                    <td>{{ $tc->customer->name ?? 'Walk-in' }}</td>
+                                    <td class="text-end">{{ $tc->visit_count }}</td>
+                                    <td class="text-end">{{ number_format($tc->total_spent, 0) }}</td>
+                                </tr>
+                                @empty
+                                <tr><td colspan="4" class="text-center text-muted py-3">No customer data this month</td></tr>
                                 @endforelse
                             </tbody>
                         </table>
