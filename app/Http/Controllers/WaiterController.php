@@ -343,6 +343,15 @@ class WaiterController extends Controller
             ]);
 
             foreach ($order->items as $item) {
+                $product = $item->product;
+                if (!$product) {
+                    throw new \Exception('Product not found for order item #' . $item->id);
+                }
+
+                if ($product->current_stock < $item->quantity) {
+                    throw new \Exception('Insufficient stock for ' . $product->name . ': only ' . $product->current_stock . ' available');
+                }
+
                 BillItem::create([
                     'bill_id' => $bill->id,
                     'product_id' => $item->product_id,
@@ -351,22 +360,19 @@ class WaiterController extends Controller
                     'subtotal' => $item->subtotal,
                 ]);
 
-                $product = $item->product;
-                if ($product) {
-                    $product->decrement('current_stock', $item->quantity);
-                    $product->decrement('stock_value', $item->price * $item->quantity);
+                $product->decrement('current_stock', $item->quantity);
+                $product->decrement('stock_value', (float) $product->cost_price * (float) $item->quantity);
 
-                    StockMovement::create([
-                        'product_id' => $item->product_id,
-                        'quantity' => $item->quantity,
-                        'type' => 'out',
-                        'reference_type' => 'bill',
-                        'reference_id' => $bill->id,
-                        'notes' => 'Sale #' . $bill->bill_number,
-                        'created_by' => auth()->id(),
-                        'branch_id' => auth()->user()->branch_id,
-                    ]);
-                }
+                StockMovement::create([
+                    'product_id' => $item->product_id,
+                    'quantity' => $item->quantity,
+                    'type' => 'out',
+                    'reference_type' => 'bill',
+                    'reference_id' => $bill->id,
+                    'notes' => 'Sale #' . $bill->bill_number,
+                    'created_by' => auth()->id(),
+                    'branch_id' => auth()->user()->branch_id,
+                ]);
             }
 
             $order->update(['status' => 'completed', 'completed_at' => now()]);

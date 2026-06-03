@@ -23,6 +23,7 @@
         <p><strong>RECEIPT #{{ $bill->bill_number ?? $bill->id }}</strong></p>
         <p>Date: {{ $bill->created_at->format('d M Y H:i') }}</p>
         <p>Cashier: {{ $bill->cashier->name ?? $bill->waiter->name ?? 'N/A' }}</p>
+        <p><span class="badge bg-{{ $bill->processed_by_role === 'waiter' ? 'info' : 'secondary' }}">{{ ucfirst($bill->processed_by_role ?? 'cashier') }}</span></p>
         <p>Customer: {{ $bill->customer->name ?? 'Walk-in' }}</p>
         <div class="r-divider"></div>
     </div>

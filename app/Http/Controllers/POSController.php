@@ -143,7 +143,15 @@ class POSController extends Controller
         ]);
 
         try {
-            $item = OrderItem::findOrFail($request->order_item_id);
+            $branchId = auth()->user()->branch_id;
+            $item = OrderItem::where('id', $request->order_item_id)
+                ->whereHas('order', fn ($q) => $q->when($branchId, fn ($q) => $q->where('branch_id', $branchId)))
+                ->first();
+
+            if (!$item) {
+                return response()->json(['success' => false, 'message' => 'Order item not found or unauthorized'], 404);
+            }
+
             $item->update([
                 'status' => 'cancelled',
                 'rejection_reason' => $request->rejection_reason,
@@ -157,6 +165,10 @@ class POSController extends Controller
 
     public function hold(Request $request)
     {
+        $request->validate([
+            'items' => 'required|array|min:1',
+        ]);
+
         try {
             $bill = Bill::create([
                 'bill_number' => Bill::generateBillNumber(),
@@ -178,6 +190,11 @@ class POSController extends Controller
     public function resumeHold(Bill $bill)
     {
         try {
+            $branchId = auth()->user()->branch_id;
+            if ($branchId && $bill->branch_id !== $branchId) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+
             $items = json_decode($bill->items_data, true);
 
             return response()->json([
@@ -196,6 +213,9 @@ class POSController extends Controller
     {
         $request->validate([
             'items' => 'required|array|min:1',
+            'items.*.id' => 'required|integer|exists:products,id',
+            'items.*.qty' => 'required|numeric|min:0.01',
+            'items.*.price' => 'required|numeric|min:0',
             'payment_method' => 'required|string',
             'total' => 'required|numeric',
             'mobile_provider' => 'nullable|string',
@@ -240,6 +260,15 @@ class POSController extends Controller
             ]);
 
             foreach ($request->items as $item) {
+                $product = Product::find($item['id']);
+                if (!$product) {
+                    throw new \Exception('Product not found: ID ' . $item['id']);
+                }
+
+                if ($product->current_stock < $item['qty']) {
+                    throw new \Exception('Insufficient stock for ' . $product->name . ': only ' . $product->current_stock . ' available');
+                }
+
                 BillItem::create([
                     'bill_id' => $bill->id,
                     'product_id' => $item['id'],
@@ -248,22 +277,19 @@ class POSController extends Controller
                     'subtotal' => $item['price'] * $item['qty'],
                 ]);
 
-                $product = Product::find($item['id']);
-                if ($product) {
-                    $product->decrement('current_stock', $item['qty']);
-                    $product->decrement('stock_value', $item['price'] * $item['qty']);
+                $product->decrement('current_stock', $item['qty']);
+                $product->decrement('stock_value', (float) $product->cost_price * (float) $item['qty']);
 
-                    StockMovement::create([
-                        'product_id' => $item['id'],
-                        'quantity' => $item['qty'],
-                        'type' => 'out',
-                        'reference_type' => 'bill',
-                        'reference_id' => $bill->id,
-                        'notes' => 'Sale #' . $bill->bill_number,
-                        'created_by' => auth()->id(),
-                        'branch_id' => auth()->user()->branch_id,
-                    ]);
-                }
+                StockMovement::create([
+                    'product_id' => $item['id'],
+                    'quantity' => $item['qty'],
+                    'type' => 'out',
+                    'reference_type' => 'bill',
+                    'reference_id' => $bill->id,
+                    'notes' => 'Sale #' . $bill->bill_number,
+                    'created_by' => auth()->id(),
+                    'branch_id' => auth()->user()->branch_id,
+                ]);
             }
 
             if ($request->order_id) {

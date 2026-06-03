@@ -31,7 +31,7 @@ class Product extends Model
         'branch_id',
     ];
 
-    protected $appends = ['stock_status'];
+    protected $appends = ['stock_status', 'stock'];
 
     protected function casts(): array
     {
@@ -45,6 +45,11 @@ class Product extends Model
             'reorder_level' => 'decimal:2',
             'tax_rate' => 'decimal:2',
         ];
+    }
+
+    public function getStockAttribute()
+    {
+        return $this->current_stock;
     }
 
     public function getStockStatusAttribute(): string
