@@ -91,7 +91,7 @@
                     const orders = orderData.orders || [];
                     this.tables = this.tables.map(t => {
                         const order = orders.find(o => o.table_id == t.id);
-                        const progressClasses = {1: 'bg-secondary', 2: 'bg-info', 3: 'bg-warning', 4: 'bg-success', 5: 'bg-primary'};
+                        const progressClasses = {1: 'bg-secondary', 2: 'bg-info', 3: 'bg-warning', 4: 'bg-success', 5: 'bg-dark'};
                         return {
                             ...t,
                             progress: order ? order.progress : null,

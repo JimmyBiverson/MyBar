@@ -42,8 +42,8 @@
                         <td class="text-end">{{ number_format($product->selling_price, 0) }}</td>
                         <td class="text-end">{{ number_format($product->current_stock * $product->cost_price, 0) }}</td>
                         <td>
-                            <span class="badge bg-{{ $product->current_stock <= $product->reorder_level ? 'danger' : ($product->current_stock <= $product->reorder_level * 2 ? 'warning' : 'success') }}">
-                                {{ $product->current_stock <= $product->reorder_level ? 'Low' : ($product->current_stock <= $product->reorder_level * 2 ? 'Medium' : 'Good') }}
+                            <span class="badge bg-{{ $product->stock_status === 'low' ? 'danger' : ($product->stock_status === 'medium' ? 'warning' : 'success') }}">
+                                {{ ucfirst($product->stock_status) }}
                             </span>
                         </td>
                     </tr>

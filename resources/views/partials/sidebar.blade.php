@@ -100,6 +100,7 @@
             <a href="{{ route('orders.index') }}" class="menu-item {{ request()->routeIs('orders.*') ? 'active' : '' }}">
                 <i class="fas fa-clipboard-list"></i>
                 <span>Orders</span>
+                <span class="badge bg-warning ms-auto" x-show="pendingOrdersCount > 0" x-text="pendingOrdersCount"></span>
             </a>
             @if(auth()->user()?->isKitchen())
             <a href="{{ route('kitchen.index') }}" class="menu-item {{ request()->routeIs('kitchen.*') ? 'active' : '' }}">
@@ -126,9 +127,10 @@
         </div>
         @endif
 
-        @if(auth()->user()?->isAdmin())
+        @if(auth()->user()?->isAdmin() || auth()->user()?->isManager())
         <div class="menu-section">
-            <div class="menu-label">Administration</div>
+            <div class="menu-label">{{ auth()->user()?->isManager() ? 'Administration' : 'Administration' }}</div>
+            @if(auth()->user()?->isAdmin())
             <a href="{{ route('users.index') }}" class="menu-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
                 <i class="fas fa-user-shield"></i>
                 <span>Users & Roles</span>
@@ -137,6 +139,7 @@
                 <i class="fas fa-history"></i>
                 <span>Activity Logs</span>
             </a>
+            @endif
             <a href="{{ route('settings.index') }}" class="menu-item {{ request()->routeIs('settings.*') ? 'active' : '' }}">
                 <i class="fas fa-cog"></i>
                 <span>Settings</span>
@@ -215,12 +218,22 @@
     <script>
         function sidebarNav() {
             return {
+                pendingOrdersCount: 0,
                 init() {
                     const sidebar = this.$el;
                     const observer = new ResizeObserver(() => {
                         sidebar.classList.toggle('collapsed', document.querySelector('.sidebar-collapsed') !== null);
                     });
                     observer.observe(document.querySelector('.app-layout'));
+                    this.fetchPendingCount();
+                },
+                async fetchPendingCount() {
+                    try {
+                        const resp = await fetch('{{ route('pos.pending-count') }}');
+                        const data = await resp.json();
+                        this.pendingOrdersCount = data.count || 0;
+                    } catch(e) { this.pendingOrdersCount = 0; }
+                    setTimeout(() => this.fetchPendingCount(), 15000);
                 }
             }
         }

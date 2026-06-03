@@ -87,6 +87,16 @@ class PurchaseController extends Controller
                 }
             });
 
+            if ($purchase->status === 'received') {
+                $productIds = collect($validated['items'])->pluck('product_id');
+                $products = Product::whereIn('id', $productIds)->get();
+                session()->flash('stock_status', $products->map(fn ($p) => [
+                    'name' => $p->name,
+                    'stock' => $p->current_stock,
+                    'status' => $p->stock_status,
+                ]));
+            }
+
             return redirect()->route('purchases.index')->with('success', 'Purchase created successfully.');
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to create purchase: ' . $e->getMessage())->withInput();
@@ -129,6 +139,14 @@ class PurchaseController extends Controller
                         'branch_id' => auth()->user()?->branch_id,
                     ]);
                 }
+
+                $productIds = $purchase->items->pluck('product_id');
+                $products = Product::whereIn('id', $productIds)->get();
+                session()->flash('stock_status', $products->map(fn ($p) => [
+                    'name' => $p->name,
+                    'stock' => $p->current_stock,
+                    'status' => $p->stock_status,
+                ]));
             }
 
             return redirect()->route('purchases.index')->with('success', 'Purchase updated successfully.');

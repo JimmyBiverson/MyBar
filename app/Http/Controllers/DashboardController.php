@@ -99,15 +99,19 @@ class DashboardController extends Controller
             ? round($monthlyExpenses / $monthlySales * 100, 1)
             : 0;
 
-        $lowStockCount = Product::whereColumn('current_stock', '<=', 'reorder_level')
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-            ->count();
-        $lowStockProducts = Product::with('category')
-            ->whereColumn('current_stock', '<=', 'reorder_level')
+        $allProducts = Product::with('category')
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->orderBy('current_stock')
-            ->limit(10)
             ->get();
+
+        $lowStockProducts = $allProducts->filter(fn ($p) => $p->stock_status === 'low')->take(10);
+        $mediumStockProducts = $allProducts->filter(fn ($p) => $p->stock_status === 'medium')->take(5);
+        $lowStockCount = $allProducts->filter(fn ($p) => $p->stock_status === 'low')->count();
+        $stockStatusCounts = [
+            'low' => $allProducts->filter(fn ($p) => $p->stock_status === 'low')->count(),
+            'medium' => $allProducts->filter(fn ($p) => $p->stock_status === 'medium')->count(),
+            'good' => $allProducts->filter(fn ($p) => $p->stock_status === 'good')->count(),
+        ];
 
         $recentTransactions = Bill::with(['customer', 'items'])
             ->where('payment_status', 'paid')
@@ -192,14 +196,32 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
+        $categorySales = BillItem::select(
+            'products.category_id',
+            'categories.name as category_name',
+            DB::raw('SUM(bill_items.subtotal) as total')
+        )
+            ->join('products', 'bill_items.product_id', '=', 'products.id')
+            ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
+            ->whereHas('bill', fn ($q) => $q->where('payment_status', 'paid')
+                ->whereDate('created_at', '>=', $startOfMonth)
+                ->when($branchId, fn ($bq) => $bq->where('branch_id', $branchId)))
+            ->groupBy('products.category_id', 'categories.name')
+            ->orderByDesc('total')
+            ->get()
+            ->map(fn ($item) => [
+                'category' => $item->category_name ?? 'Uncategorized',
+                'total' => (float) $item->total,
+            ]);
+
         return view('dashboard.index', compact(
             'todaySales', 'monthlySales', 'totalSales',
             'todaySalesPercent', 'monthlySalesPercent',
             'todayExpenses', 'monthlyExpenses', 'expensePercent',
-            'lowStockCount', 'lowStockProducts',
+            'lowStockCount', 'lowStockProducts', 'mediumStockProducts', 'stockStatusCounts',
             'recentTransactions', 'recentOrders', 'topProducts',
             'chartLabels', 'chartValues',
-            'paymentMethods', 'topCustomers',
+            'paymentMethods', 'topCustomers', 'categorySales',
         ));
     }
 

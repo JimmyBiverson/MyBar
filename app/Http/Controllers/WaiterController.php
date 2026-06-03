@@ -305,6 +305,8 @@ class WaiterController extends Controller
             'order_id' => 'required|exists:orders,id',
             'payment_method' => 'required|string',
             'amount_received' => 'required|numeric|min:0',
+            'mobile_provider' => 'nullable|string',
+            'reference_number' => 'nullable|string',
         ]);
 
         $order = Order::with('items.product')
@@ -331,6 +333,8 @@ class WaiterController extends Controller
                 'paid_amount' => $paidAmount,
                 'change_amount' => $changeAmount,
                 'payment_method' => $request->payment_method,
+                'mobile_provider' => $request->mobile_provider,
+                'reference_number' => $request->reference_number,
                 'payment_status' => 'paid',
                 'waiter_id' => auth()->id(),
                 'processed_by_role' => 'waiter',

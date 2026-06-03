@@ -29,6 +29,7 @@ class SettingSeeder extends Seeder
             ['key' => 'receipt_show_tax', 'value' => '1', 'group_name' => 'receipt'],
             ['key' => 'receipt_show_logo', 'value' => '1', 'group_name' => 'receipt'],
             ['key' => 'low_stock_threshold', 'value' => '10', 'group_name' => 'inventory'],
+            ['key' => 'medium_stock_threshold', 'value' => '20', 'group_name' => 'inventory'],
             ['key' => 'enable_negative_stock', 'value' => '0', 'group_name' => 'inventory'],
         ];
 

@@ -4,10 +4,14 @@
 
 @section('breadcrumb-plugins')
     <a href="{{ route('orders.index') }}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Back</a>
-    @if($order->status !== 'cancelled' && $order->status !== 'completed')
+    @if($order->status !== 'cancelled' && $order->status !== 'completed' && $order->status !== 'served')
     <button class="btn btn-primary btn-sm" onclick="document.getElementById('statusForm').submit()">
-        <i class="fas fa-check me-1"></i> Mark {{ $order->status === 'pending' ? 'Confirmed' : ($order->status === 'confirmed' ? 'Preparing' : ($order->status === 'preparing' ? 'Ready' : ($order->status === 'ready' ? 'Served' : 'Completed'))) }}
+        <i class="fas fa-check me-1"></i> Mark {{ $order->status === 'pending' ? 'Confirmed' : ($order->status === 'confirmed' ? 'Preparing' : ($order->status === 'preparing' ? 'Ready' : ($order->status === 'ready' ? 'Served' : ''))) }}
     </button>
+    @elseif($order->status === 'served')
+    <a href="{{ route('pos.index', ['order_id' => $order->id]) }}" class="btn btn-success btn-sm">
+        <i class="fas fa-credit-card me-1"></i> Process Payment via POS
+    </a>
     @endif
 @endsection
 
@@ -54,7 +58,7 @@
                 <div class="mb-2"><strong>Waiter:</strong> {{ $order->waiter->name ?? 'N/A' }}</div>
                 <div class="mb-2"><strong>Customer:</strong> {{ $order->customer->name ?? 'N/A' }}</div>
                 <div class="mb-2"><strong>Status:</strong>
-                    <span class="badge bg-{{ $order->status === 'pending' ? 'warning' : ($order->status === 'preparing' ? 'info' : ($order->status === 'ready' ? 'success' : ($order->status === 'served' ? 'primary' : 'danger'))) }}">
+                    <span class="badge bg-{{ $order->status === 'pending' ? 'warning' : ($order->status === 'confirmed' ? 'info' : ($order->status === 'preparing' ? 'info' : ($order->status === 'ready' ? 'success' : ($order->status === 'served' ? 'primary' : ($order->status === 'completed' ? 'dark' : 'danger'))))) }}">
                         {{ ucfirst($order->status) }}
                     </span>
                 </div>
@@ -72,6 +76,6 @@
 
 <form id="statusForm" method="POST" action="{{ route('orders.status', $order->id) }}" class="d-none">
     @csrf @method('PUT')
-    <input type="hidden" name="status" value="{{ $order->status === 'pending' ? 'confirmed' : ($order->status === 'confirmed' ? 'preparing' : ($order->status === 'preparing' ? 'ready' : ($order->status === 'ready' ? 'served' : 'completed'))) }}">
+    <input type="hidden" name="status" value="{{ $order->status === 'pending' ? 'confirmed' : ($order->status === 'confirmed' ? 'preparing' : ($order->status === 'preparing' ? 'ready' : ($order->status === 'ready' ? 'served' : 'served'))) }}">
 </form>
 @endsection

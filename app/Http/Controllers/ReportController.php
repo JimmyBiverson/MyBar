@@ -97,7 +97,7 @@ class ReportController extends Controller
             ->get();
 
         $totalValue = $products->sum('stock_value');
-        $lowStockCount = $products->filter(fn ($p) => $p->current_stock <= $p->reorder_level)->count();
+        $lowStockCount = $products->filter(fn ($p) => $p->stock_status === 'low')->count();
         $avgCost = $products->avg('cost_price');
 
         $data = [

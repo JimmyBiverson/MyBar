@@ -64,7 +64,7 @@
     </div>
 
     <div class="row g-3 mb-4">
-        <div class="col-xl-8">
+        <div class="col-xl-6">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span><i class="fas fa-chart-line me-2"></i>Sales Trend (<span x-text="salesPeriod"></span> Days)</span>
@@ -79,31 +79,30 @@
                 </div>
             </div>
         </div>
-        <div class="col-xl-4">
+        <div class="col-xl-3">
             <div class="card">
-                <div class="card-header"><i class="fas fa-chart-pie me-2"></i>Today's Payment Methods</div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Method</th>
-                                    <th class="text-end">Count</th>
-                                    <th class="text-end">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($paymentMethods ?? [] as $pm)
-                                <tr>
-                                    <td>{{ ucwords(str_replace('_', ' ', $pm->payment_method)) }}</td>
-                                    <td class="text-end">{{ $pm->count }}</td>
-                                    <td class="text-end">{{ number_format($pm->total, 0) }}</td>
-                                </tr>
-                                @empty
-                                <tr><td colspan="3" class="text-center text-muted py-3">No payments today</td></tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                <div class="card-header"><i class="fas fa-chart-pie me-2"></i>Payment Methods (Today)</div>
+                <div class="card-body">
+                    <canvas id="paymentChart" height="240"></canvas>
+                    <div class="mt-2 text-center text-muted small">
+                        @forelse($paymentMethods ?? [] as $pm)
+                            <span class="badge bg-secondary me-1">{{ ucwords(str_replace('_', ' ', $pm->payment_method)) }}: {{ number_format($pm->total, 0) }}</span>
+                        @empty
+                            No payments today
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3">
+            <div class="card">
+                <div class="card-header"><i class="fas fa-boxes me-2"></i>Stock Status</div>
+                <div class="card-body">
+                    <canvas id="stockChart" height="240"></canvas>
+                    <div class="mt-2 text-center text-muted small">
+                        <span class="badge bg-danger me-1">Low: {{ $stockStatusCounts['low'] ?? 0 }}</span>
+                        <span class="badge bg-warning text-dark me-1">Medium: {{ $stockStatusCounts['medium'] ?? 0 }}</span>
+                        <span class="badge bg-success me-1">Good: {{ $stockStatusCounts['good'] ?? 0 }}</span>
                     </div>
                 </div>
             </div>
@@ -266,33 +265,16 @@
         </div>
         <div class="col-xl-4">
             <div class="card">
-                <div class="card-header"><i class="fas fa-exclamation-circle me-2 text-danger"></i>Low Stock Alerts</div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Product</th>
-                                    <th class="text-end">Stock</th>
-                                    <th class="text-end">Reorder</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($lowStockProducts ?? [] as $product)
-                                <tr>
-                                    <td>{{ $product->name }}</td>
-                                    <td class="text-end"><span class="badge bg-danger">{{ $product->current_stock }}</span></td>
-                                    <td class="text-end">{{ $product->reorder_level }}</td>
-                                </tr>
-                                @empty
-                                <tr><td colspan="3" class="text-center text-muted py-3">All stock levels are healthy</td></tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                <div class="card-header"><i class="fas fa-chart-pie me-2"></i>Sales by Category (This Month)</div>
+                <div class="card-body">
+                    <canvas id="categoryChart" height="240"></canvas>
+                    <div class="mt-2 text-center text-muted small">
+                        @forelse($categorySales ?? [] as $cs)
+                            <span class="badge bg-secondary me-1">{{ $cs['category'] }}: {{ number_format($cs['total'], 0) }}</span>
+                        @empty
+                            No sales data this month
+                        @endforelse
                     </div>
-                </div>
-                <div class="card-footer text-center p-2">
-                    <a href="{{ route('products.index', ['low_stock' => 1]) }}" class="btn btn-sm btn-outline-primary">View All</a>
                 </div>
             </div>
         </div>
@@ -302,6 +284,8 @@
 
 @push('scripts')
 <script>
+    Chart.register(ChartDataLabels);
+
     function dashboardStats() {
         return {
             todaySales: {{ $todaySales ?? 0 }},
@@ -313,6 +297,9 @@
             lowStockCount: {{ $lowStockCount ?? 0 }},
             salesPeriod: '30',
             chart: null,
+            paymentChart: null,
+            stockChart: null,
+            categoryChart: null,
             formatCurrency(val) {
                 const s = window.currencySettings || { symbol: 'UGX', position: 'before', thousand_separator: ',', decimal_separator: '.', decimal_digits: 0 };
                 const formatted = Number(val).toFixed(s.decimal_digits || 0).replace(/\B(?=(\d{3})+(?!\d))/g, s.thousand_separator || ',');
@@ -324,6 +311,124 @@
                     @json($chartLabels ?? []),
                     @json($chartValues ?? [])
                 );
+                this.renderPieCharts();
+            },
+            centerDoughnutText(val) {
+                return {
+                    id: 'centerText',
+                    afterDraw(chart) {
+                        const { ctx, width, height } = chart;
+                        const s = window.currencySettings || { symbol: 'UGX' };
+                        const text = s.symbol + ' ' + Number(val).toLocaleString();
+                        ctx.save();
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.font = 'bold 16px Arial';
+                        ctx.fillStyle = '#666';
+                        ctx.fillText(text, width / 2, height / 2);
+                        ctx.restore();
+                    }
+                };
+            },
+            renderPieCharts() {
+                const pmData = @json($paymentMethods ?? []);
+                const pmEl = document.getElementById('paymentChart');
+                if (pmEl) {
+                    const pmLabels = pmData.length ? pmData.map(pm => pm.payment_method ? pm.payment_method.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'N/A') : ['No Data'];
+                    const pmValues = pmData.length ? pmData.map(pm => Number(pm.total)) : [1];
+                    const pmColors = pmData.length ? ['#7367f0', '#28c76f', '#ff9f43', '#ea5455', '#00cfe8'] : ['#e0e0e0'];
+                    const pmTotal = pmValues.reduce((a, b) => a + b, 0);
+                    this.paymentChart = new Chart(pmEl, {
+                        type: 'doughnut',
+                        data: {
+                            labels: pmLabels,
+                            datasets: [{ data: pmValues, backgroundColor: pmColors }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: '65%',
+                            plugins: {
+                                legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10, font: { size: 10 } } },
+                                datalabels: {
+                                    color: '#fff',
+                                    font: { weight: 'bold', size: 11 },
+                                    formatter: (val) => val > (pmTotal * 0.05) ? this.formatCurrency(val) : '',
+                                    anchor: 'center',
+                                    align: 'center',
+                                }
+                            }
+                        },
+                        plugins: [this.centerDoughnutText(pmTotal)]
+                    });
+                }
+
+                const ssData = @json($stockStatusCounts ?? ['low' => 0, 'medium' => 0, 'good' => 0]);
+                const ssEl = document.getElementById('stockChart');
+                if (ssEl) {
+                    const ssValues = [ssData.low, ssData.medium, ssData.good];
+                    const hasSsData = ssValues.some(v => v > 0);
+                    this.stockChart = new Chart(ssEl, {
+                        type: 'doughnut',
+                        data: {
+                            labels: hasSsData ? ['Low', 'Medium', 'Good'] : ['No Data'],
+                            datasets: [{
+                                data: hasSsData ? ssValues : [1],
+                                backgroundColor: hasSsData ? ['#ea5455', '#ff9f43', '#28c76f'] : ['#e0e0e0'],
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: '65%',
+                            plugins: {
+                                legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10, font: { size: 10 } } },
+                                datalabels: hasSsData ? {
+                                    color: '#fff',
+                                    font: { weight: 'bold', size: 12 },
+                                    formatter: (val) => val,
+                                    anchor: 'center',
+                                    align: 'center',
+                                } : { display: false }
+                            }
+                        },
+                        plugins: [this.centerDoughnutText(hasSsData ? ssValues.reduce((a, b) => a + b, 0) : 0)]
+                    });
+                }
+
+                const catData = @json($categorySales ?? []);
+                const catEl = document.getElementById('categoryChart');
+                if (catEl) {
+                    const catColors = ['#7367f0', '#28c76f', '#ff9f43', '#ea5455', '#00cfe8', '#a8aaaf', '#ffd166'];
+                    const hasCatData = catData.length > 0;
+                    const catLabels = hasCatData ? catData.map(c => c.category) : ['No Data'];
+                    const catValues = hasCatData ? catData.map(c => c.total) : [1];
+                    const catBg = hasCatData ? catColors.slice(0, catData.length) : ['#e0e0e0'];
+                    const catTotal = catValues.reduce((a, b) => a + b, 0);
+                    this.categoryChart = new Chart(catEl, {
+                        type: 'doughnut',
+                        data: {
+                            labels: catLabels,
+                            datasets: [{ data: catValues, backgroundColor: catBg }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: '65%',
+                            plugins: {
+                                legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10, font: { size: 10 } } },
+                                datalabels: hasCatData ? {
+                                    color: '#fff',
+                                    font: { weight: 'bold', size: 11 },
+                                    formatter: (val) => val > (catTotal * 0.05) ? this.formatCurrency(val) : '',
+                                    anchor: 'center',
+                                    align: 'center',
+                                } : { display: false }
+                            }
+                        },
+                        plugins: [this.centerDoughnutText(catTotal)]
+                    });
+                }
             },
             renderChart(labels, data) {
                 const ctx = document.getElementById('salesChart');
@@ -331,6 +436,59 @@
 
                 if (this.chart) {
                     this.chart.destroy();
+                }
+
+                const allZero = data.every(v => Number(v) === 0);
+
+                if (allZero) {
+                    this.chart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Sales',
+                                data: data,
+                                borderColor: '#7367f0',
+                                backgroundColor: 'rgba(115,103,240,0.1)',
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 0,
+                                pointBackgroundColor: '#7367f0',
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                datalabels: { display: false },
+                                emptyState: {
+                                    text: 'No sales data for this period'
+                                }
+                            },
+                            scales: {
+                                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' } },
+                                x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } }
+                            }
+                        },
+                        plugins: [{
+                            id: 'emptyState',
+                            afterDraw(chart) {
+                                const { ctx, width, height, chartArea } = chart;
+                                if (!chartArea) return;
+                                const cfg = chart.options.plugins.emptyState || {};
+                                const text = cfg.text || 'No data';
+                                ctx.save();
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.font = '15px Arial';
+                                ctx.fillStyle = '#999';
+                                ctx.fillText(text, width / 2, (chartArea.top + chartArea.bottom) / 2);
+                                ctx.restore();
+                            }
+                        }]
+                    });
+                    return;
                 }
 
                 this.chart = new Chart(ctx, {
@@ -344,8 +502,10 @@
                             backgroundColor: 'rgba(115,103,240,0.1)',
                             fill: true,
                             tension: 0.4,
-                            pointRadius: 3,
+                            pointRadius: 4,
                             pointBackgroundColor: '#7367f0',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
                         }]
                     },
                     options: {
@@ -359,6 +519,18 @@
                                         const s = window.currencySettings || { symbol: 'UGX', position: 'before' };
                                         return s.symbol + ' ' + Number(ctx.parsed.y).toLocaleString();
                                     }
+                                }
+                            },
+                            datalabels: {
+                                display: (ctx) => Number(ctx.dataset.data[ctx.dataIndex]) > 0,
+                                color: '#7367f0',
+                                anchor: 'end',
+                                align: 'end',
+                                offset: 2,
+                                font: { weight: 'bold', size: 10 },
+                                formatter: (val) => {
+                                    const s = window.currencySettings || { symbol: 'UGX' };
+                                    return s.symbol + ' ' + Number(val).toLocaleString();
                                 }
                             }
                         },

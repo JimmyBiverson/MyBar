@@ -8,7 +8,7 @@
             <div class="modal-body">
                 <div class="text-center mb-4">
                     <small class="text-muted">Total Amount</small>
-                    <h2 class="fw-bold text-primary" x-text="$root.closest('[x-data]') ? $root.closest('[x-data]').__x.$data.formatCurrency($root.closest('[x-data]').__x.$data.total) : '0'"></h2>
+                    <h2 class="fw-bold text-primary" x-text="$parent.formatCurrency($parent.total)"></h2>
                 </div>
 
                 <div class="mb-3">
@@ -26,12 +26,18 @@
                 </div>
 
                 <template x-if="paymentMethod === 'mobile_money'">
-                    <div class="mb-3">
-                        <label class="form-label small">Mobile Money Provider</label>
-                        <select class="form-select" x-model="mobileProvider">
-                            <option value="mtn">MTN Mobile Money</option>
-                            <option value="airtel">Airtel Money</option>
-                        </select>
+                    <div>
+                        <div class="mb-3">
+                            <label class="form-label small">Mobile Money Provider</label>
+                            <select class="form-select" x-model="mobileProvider">
+                                <option value="mtn">MTN Mobile Money</option>
+                                <option value="airtel">Airtel Money</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Reference Number</label>
+                            <input type="text" class="form-control" x-model="paymentReference" placeholder="Transaction reference (e.g. 1234567890)" required>
+                        </div>
                     </div>
                 </template>
 
@@ -50,7 +56,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn btn-primary" @click="submitPayment()" :disabled="amountReceived < total">
+                <button class="btn btn-primary" @click="submitPayment()" :disabled="amountReceived < total || (paymentMethod === 'mobile_money' && !paymentReference.trim())">
                     <i class="fas fa-check me-1"></i> Complete Payment
                 </button>
             </div>
@@ -62,10 +68,16 @@
             return {
                 paymentMethod: 'cash',
                 mobileProvider: 'mtn',
+                paymentReference: '',
                 amountReceived: 0,
+                init() {
+                    this.$el.addEventListener('show.bs.modal', () => {
+                        this.amountReceived = this.total;
+                        this.paymentReference = '';
+                    });
+                },
                 get total() {
-                    const pos = this.$root.closest('[x-data]');
-                    return pos ? pos.__x.$data.total : 0;
+                    return this.$parent ? this.$parent.total : 0;
                 },
                 get change() {
                     return parseFloat(this.amountReceived || 0) - this.total;
@@ -76,9 +88,8 @@
                     return s.position === 'before' ? s.symbol + ' ' + formatted : formatted + ' ' + s.symbol;
                 },
                 submitPayment() {
-                    const pos = this.$root.closest('[x-data]');
-                    if (pos) {
-                        pos.__x.$data.processPayment(this.paymentMethod, this.amountReceived);
+                    if (this.$parent) {
+                        this.$parent.processPayment(this.paymentMethod, this.amountReceived, this.mobileProvider, this.paymentReference);
                         bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
                     }
                 }

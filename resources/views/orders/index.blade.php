@@ -40,7 +40,7 @@
                         <td>{{ $order->items_count ?? $order->items()->count() }}</td>
                         <td>{{ number_format($order->total ?? 0) }}</td>
                         <td>
-                            <span class="badge bg-{{ $order->status === 'pending' ? 'warning' : ($order->status === 'preparing' ? 'info' : ($order->status === 'ready' ? 'success' : ($order->status === 'served' ? 'primary' : 'danger'))) }}">
+                            <span class="badge bg-{{ $order->status === 'pending' ? 'warning' : ($order->status === 'confirmed' ? 'info' : ($order->status === 'preparing' ? 'info' : ($order->status === 'ready' ? 'success' : ($order->status === 'served' ? 'primary' : ($order->status === 'completed' ? 'dark' : 'danger'))))) }}">
                                 {{ ucfirst($order->status) }}
                             </span>
                         </td>

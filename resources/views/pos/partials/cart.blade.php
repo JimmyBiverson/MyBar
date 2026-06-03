@@ -83,14 +83,6 @@
         </div>
     </div>
 
-    <div class="d-flex justify-content-between small mb-1">
-        <span>Tax (@{{ taxRate }}%)</span>
-        <span x-text="formatCurrency(tax)"></span>
-    </div>
-    <div class="d-flex justify-content-between small mb-2">
-        <span>Service Charge (@{{ serviceChargeRate }}%)</span>
-        <span x-text="formatCurrency(serviceCharge)"></span>
-    </div>
     <hr class="my-2">
     <div class="d-flex justify-content-between fw-bold fs-5 mb-3">
         <span>Total</span>

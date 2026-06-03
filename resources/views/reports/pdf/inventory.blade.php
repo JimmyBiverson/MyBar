@@ -20,7 +20,7 @@
     </div>
     <table>
         <thead>
-            <tr><th>Product</th><th>Category</th><th class="text-right">Stock</th><th class="text-right">Cost Price</th><th class="text-right">Stock Value</th></tr>
+            <tr><th>Product</th><th>Category</th><th class="text-right">Stock</th><th>Status</th><th class="text-right">Cost Price</th><th class="text-right">Stock Value</th></tr>
         </thead>
         <tbody>
             @foreach($products ?? [] as $product)
@@ -28,6 +28,7 @@
                 <td>{{ $product->name }}</td>
                 <td>{{ $product->category->name ?? 'N/A' }}</td>
                 <td class="text-right">{{ $product->current_stock }}</td>
+                <td>{{ ucfirst($product->stock_status) }}</td>
                 <td class="text-right">{{ number_format($product->cost_price, 0) }}</td>
                 <td class="text-right">{{ number_format($product->current_stock * $product->cost_price, 0) }}</td>
             </tr>

@@ -54,7 +54,7 @@
                                 <select class="form-select form-select-sm" name="items[0][product_id]" required>
                                     <option value="">Select Product</option>
                                     @foreach($products ?? [] as $product)
-                                        <option value="{{ $product->id }}">{{ $product->name }}</option>
+                                        <option value="{{ $product->id }}" data-stock="{{ $product->current_stock }}" data-status="{{ $product->stock_status }}">{{ $product->name }} (Stock: {{ $product->current_stock }} - {{ ucfirst($product->stock_status) }})</option>
                                     @endforeach
                                 </select>
                             </td>

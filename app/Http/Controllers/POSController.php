@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
 
 class POSController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $branchId = auth()->user()->branch_id;
 
@@ -35,15 +35,47 @@ class POSController extends Controller
         $taxRate = (float) ($settings['tax_rate'] ?? 0);
         $serviceChargeRate = (float) ($settings['service_charge_rate'] ?? 0);
 
-        return view('pos.index', compact('products', 'categories', 'tables', 'customers', 'settings', 'taxRate', 'serviceChargeRate'));
+        $preloadOrder = null;
+        if ($request->filled('order_id')) {
+            $order = Order::with(['items.product', 'table', 'waiter', 'customer'])
+                ->find($request->order_id);
+            if ($order && in_array($order->status, ['pending', 'confirmed'])) {
+                $preloadOrder = [
+                    'id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'table_name' => $order->table->name ?? 'Takeaway',
+                    'waiter_name' => $order->waiter->name ?? 'N/A',
+                    'customer_name' => $order->customer->name ?? null,
+                    'items_count' => $order->items->count(),
+                    'total' => $order->items->sum('subtotal'),
+                    'status' => $order->status,
+                    'items' => $order->items->map(fn ($i) => [
+                        'id' => $i->product_id,
+                        'order_item_id' => $i->id,
+                        'name' => $i->product->name ?? 'N/A',
+                        'selling_price' => (float) $i->price,
+                        'qty' => $i->quantity,
+                        'stock' => $i->product->current_stock ?? 0,
+                        'status' => $i->status,
+                        'notes' => $i->notes,
+                    ]),
+                    'created_at' => $order->created_at->format('H:i'),
+                ];
+            }
+        }
+
+        return view('pos.index', compact('products', 'categories', 'tables', 'customers', 'settings', 'taxRate', 'serviceChargeRate', 'preloadOrder'));
     }
 
     public function pendingOrders()
     {
         $branchId = auth()->user()->branch_id;
 
-        $orders = Order::with(['items.product', 'table', 'waiter', 'customer'])
-            ->whereIn('status', ['pending', 'confirmed'])
+        $orders = Order::with(['items.product', 'table', 'waiter', 'customer', 'bill'])
+            ->where(function ($q) {
+                $q->whereIn('status', ['pending', 'confirmed'])
+                  ->orWhereHas('bill', fn ($q) => $q->where('payment_status', 'unpaid'));
+            })
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->latest()
             ->get()
@@ -56,6 +88,8 @@ class POSController extends Controller
                 'items_count' => $o->items->count(),
                 'total' => $o->items->sum('subtotal'),
                 'status' => $o->status,
+                'bill_requested' => $o->bill_requested,
+                'payment_status' => $o->payment_status,
                 'items' => $o->items->map(fn ($i) => [
                     'id' => $i->product_id,
                     'order_item_id' => $i->id,
@@ -70,6 +104,20 @@ class POSController extends Controller
             ]);
 
         return response()->json(['orders' => $orders]);
+    }
+
+    public function pendingCount()
+    {
+        $branchId = auth()->user()->branch_id;
+
+        $count = Order::where(function ($q) {
+                $q->whereIn('status', ['pending', 'confirmed'])
+                  ->orWhereHas('bill', fn ($q) => $q->where('payment_status', 'unpaid'));
+            })
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->count();
+
+        return response()->json(['count' => $count]);
     }
 
     public function acceptOrder(Order $order)
@@ -149,6 +197,8 @@ class POSController extends Controller
             'items' => 'required|array|min:1',
             'payment_method' => 'required|string',
             'total' => 'required|numeric',
+            'mobile_provider' => 'nullable|string',
+            'reference_number' => 'nullable|string',
         ]);
 
         try {
@@ -168,6 +218,8 @@ class POSController extends Controller
                 'paid_amount' => $paidAmount,
                 'change_amount' => $changeAmount,
                 'payment_method' => $request->payment_method,
+                'mobile_provider' => $request->mobile_provider,
+                'reference_number' => $request->reference_number,
                 'payment_status' => 'paid',
                 'cashier_id' => auth()->id(),
                 'processed_by_role' => 'cashier',
@@ -187,8 +239,9 @@ class POSController extends Controller
             if ($request->order_id) {
                 $order = Order::with('items')->find($request->order_id);
 
-                if ($request->has('billed_item_ids') && count($request->billed_item_ids) > 0) {
-                    OrderItem::whereIn('id', $request->billed_item_ids)->update(['status' => 'served']);
+                $billedItemIds = $request->input('billed_item_ids');
+                if (!empty($billedItemIds)) {
+                    OrderItem::whereIn('id', $billedItemIds)->update(['status' => 'served']);
 
                     $pendingItems = $order->items()->whereNotIn('status', ['served', 'cancelled'])->count();
                     if ($pendingItems === 0) {

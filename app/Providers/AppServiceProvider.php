@@ -16,13 +16,14 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         View::composer('partials.stock-alert', function ($view) {
-            $lowStockCount = Product::whereColumn('current_stock', '<=', 'reorder_level')->count();
-            $lowStockItems = Product::whereColumn('current_stock', '<=', 'reorder_level')
-                ->orderBy('current_stock')
-                ->limit(5)
-                ->get();
+            $products = Product::orderBy('current_stock')->get();
 
-            $view->with(compact('lowStockCount', 'lowStockItems'));
+            $lowStockItems = $products->filter(fn ($p) => $p->stock_status === 'low')->take(5);
+            $mediumStockItems = $products->filter(fn ($p) => $p->stock_status === 'medium')->take(5);
+            $lowStockCount = $products->filter(fn ($p) => $p->stock_status === 'low')->count();
+            $mediumStockCount = $products->filter(fn ($p) => $p->stock_status === 'medium')->count();
+
+            $view->with(compact('lowStockCount', 'mediumStockCount', 'lowStockItems', 'mediumStockItems'));
         });
     }
 }

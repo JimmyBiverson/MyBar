@@ -35,6 +35,8 @@ class Bill extends Model
         'paid_amount',
         'change_amount',
         'payment_method',
+        'mobile_provider',
+        'reference_number',
         'payment_status',
         'notes',
         'branch_id',

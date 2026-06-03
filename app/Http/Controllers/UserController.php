@@ -111,4 +111,15 @@ class UserController extends Controller
             return back()->withInput()->with('error', 'Failed to update user.');
         }
     }
+
+    public function destroy(User $user)
+    {
+        try {
+            $user->delete();
+            return redirect()->route('users.index')
+                ->with('success', 'User deleted successfully.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Cannot delete user with associated records.');
+        }
+    }
 }

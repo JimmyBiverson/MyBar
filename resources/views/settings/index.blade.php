@@ -3,8 +3,9 @@
 @section('page-title', 'Settings')
 
 @section('content')
-<div x-data="{ activeTab: 'general' }">
+<div x-data="{ activeTab: '{{ auth()->user()->isManager() ? 'inventory' : 'general' }}' }">
     <ul class="nav nav-tabs mb-4" role="tablist">
+        @if(!auth()->user()->isManager())
         <li class="nav-item" role="presentation">
             <button class="nav-link" :class="{ active: activeTab === 'general' }" @click="activeTab = 'general'" type="button">
                 <i class="fas fa-sliders-h me-1"></i> General
@@ -20,6 +21,7 @@
                 <i class="fas fa-print me-1"></i> Receipt
             </button>
         </li>
+        @endif
         <li class="nav-item" role="presentation">
             <button class="nav-link" :class="{ active: activeTab === 'inventory' }" @click="activeTab = 'inventory'" type="button">
                 <i class="fas fa-box me-1"></i> Inventory
@@ -191,11 +193,23 @@
                 <div class="card-header">Inventory Settings</div>
                 <div class="card-body">
                     <div class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <label class="form-label">Low Stock Threshold</label>
+                            <input type="number" class="form-control" name="low_stock_threshold" value="{{ old('low_stock_threshold', $settings['low_stock_threshold'] ?? 10) }}" min="0">
+                            <input type="hidden" name="group_low_stock_threshold" value="inventory">
+                            <small class="text-muted">Stock at or below this is <span class="text-danger fw-medium">Low</span></small>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Medium Stock Threshold</label>
+                            <input type="number" class="form-control" name="medium_stock_threshold" value="{{ old('medium_stock_threshold', $settings['medium_stock_threshold'] ?? 20) }}" min="0">
+                            <input type="hidden" name="group_medium_stock_threshold" value="inventory">
+                            <small class="text-muted">Stock up to this is <span class="text-warning fw-medium">Medium</span></small>
+                        </div>
+                        <div class="col-md-3">
                             <label class="form-label">Default Reorder Level</label>
                             <input type="number" class="form-control" name="default_reorder_level" value="{{ old('default_reorder_level', $settings['default_reorder_level'] ?? 10) }}" min="0">
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">Stock Alert Frequency</label>
                             <select class="form-select" name="stock_alert_frequency">
                                 <option value="daily" {{ ($settings['stock_alert_frequency'] ?? 'daily') === 'daily' ? 'selected' : '' }}>Daily</option>
@@ -210,14 +224,14 @@
                                 <option value="0" {{ !($settings['enable_batch_tracking'] ?? false) ? 'selected' : '' }}>Disabled</option>
                             </select>
                         </div>
-                        <div class="col-12">
-                            <div class="form-check">
+                        <div class="col-md-4">
+                            <div class="form-check pt-4">
                                 <input type="checkbox" class="form-check-input" name="auto_adjust_stock" value="1" id="autoAdjust" {{ ($settings['auto_adjust_stock'] ?? true) ? 'checked' : '' }}>
                                 <label class="form-check-label" for="autoAdjust">Auto-adjust Stock on Sale</label>
                             </div>
                         </div>
-                        <div class="col-12">
-                            <div class="form-check">
+                        <div class="col-md-4">
+                            <div class="form-check pt-4">
                                 <input type="checkbox" class="form-check-input" name="negative_stock" value="1" id="negStock" {{ ($settings['negative_stock'] ?? false) ? 'checked' : '' }}>
                                 <label class="form-check-label" for="negStock">Allow Negative Stock</label>
                             </div>

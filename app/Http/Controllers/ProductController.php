@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\Setting;
 use App\Models\Unit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -20,6 +21,11 @@ class ProductController extends Controller
                     ->orWhere('sku', 'like', "%{$search}%")
                     ->orWhere('barcode', 'like', "%{$search}%");
             });
+        }
+
+        if ($request->low_stock) {
+            $lowThreshold = (float) \App\Models\Setting::get('low_stock_threshold', 10);
+            $query->where('current_stock', '<=', $lowThreshold);
         }
 
         $products = $query->orderBy('name')->paginate(15);

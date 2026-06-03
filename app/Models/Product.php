@@ -31,6 +31,8 @@ class Product extends Model
         'branch_id',
     ];
 
+    protected $appends = ['stock_status'];
+
     protected function casts(): array
     {
         return [
@@ -43,6 +45,23 @@ class Product extends Model
             'reorder_level' => 'decimal:2',
             'tax_rate' => 'decimal:2',
         ];
+    }
+
+    public function getStockStatusAttribute(): string
+    {
+        $lowThreshold = (float) Setting::get('low_stock_threshold', 10);
+        $mediumThreshold = (float) Setting::get('medium_stock_threshold', 20);
+        $stock = (float) $this->current_stock;
+
+        if ($stock <= $lowThreshold) {
+            return 'low';
+        }
+
+        if ($stock <= $mediumThreshold) {
+            return 'medium';
+        }
+
+        return 'good';
     }
 
     public function category()

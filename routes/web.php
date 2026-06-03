@@ -60,6 +60,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('pos')->name('pos.')->group(function () {
         Route::get('/', [POSController::class, 'index'])->name('index');
         Route::get('/orders', [POSController::class, 'pendingOrders'])->name('orders');
+        Route::get('/pending-count', [POSController::class, 'pendingCount'])->name('pending-count');
         Route::post('/hold', [POSController::class, 'hold'])->name('hold');
         Route::post('/payment', [POSController::class, 'payment'])->name('payment');
         Route::post('/orders/{order}/accept', [POSController::class, 'acceptOrder'])->name('accept-order');
@@ -216,6 +217,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [UserController::class, 'store'])->name('store');
         Route::get('/{user}/edit', [UserController::class, 'edit'])->name('edit');
         Route::put('/{user}', [UserController::class, 'update'])->name('update');
+        Route::delete('/{user}', [UserController::class, 'destroy'])->name('destroy');
     });
 
     Route::prefix('branches')->name('branches.')->group(function () {

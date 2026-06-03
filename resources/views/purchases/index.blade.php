@@ -8,6 +8,10 @@
     </a>
 @endsection
 
+@php
+    $stockStatus = session('stock_status');
+@endphp
+
 @section('content')
 <div class="card">
     <div class="card-body">
@@ -76,5 +80,23 @@
             tr.style.display = !v || (status && status.textContent.toLowerCase().includes(v)) ? '' : 'none';
         });
     });
+
+    @if($stockStatus)
+    document.addEventListener('DOMContentLoaded', function() {
+        let html = '<table class="table table-sm table-borderless mb-0"><thead><tr><th>Product</th><th class="text-end">Stock</th><th class="text-center">Status</th></tr></thead><tbody>';
+        @foreach($stockStatus as $item)
+            html += '<tr><td>{{ $item['name'] }}</td><td class="text-end">{{ $item['stock'] }}</td><td class="text-center"><span class="badge bg-{{ $item['status'] === 'low' ? 'danger' : ($item['status'] === 'medium' ? 'warning' : 'success') }}">{{ ucfirst($item['status']) }}</span></td></tr>';
+        @endforeach
+        html += '</tbody></table>';
+
+        Swal.fire({
+            title: 'Stock Status After Receiving',
+            html: html,
+            icon: 'info',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#7367f0',
+        });
+    });
+    @endif
 </script>
 @endpush

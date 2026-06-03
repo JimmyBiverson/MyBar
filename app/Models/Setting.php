@@ -14,4 +14,16 @@ class Setting extends Model
         'value',
         'group_name',
     ];
+
+    public static function get(string $key, mixed $default = null): mixed
+    {
+        static $cache = [];
+
+        if (!isset($cache[$key])) {
+            $setting = static::where('key', $key)->first();
+            $cache[$key] = $setting ? $setting->value : $default;
+        }
+
+        return $cache[$key];
+    }
 }

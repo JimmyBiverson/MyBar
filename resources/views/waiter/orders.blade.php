@@ -123,7 +123,7 @@
                                         <i class="fas fa-ban me-1"></i> Cancel
                                     </button>
                                 </template>
-                                <template x-if="order.status !== 'cancelled' && order.status !== 'served' && order.status !== 'completed'">
+                                <template x-if="order.status !== 'cancelled' && order.status !== 'completed'">
                                     <button class="btn btn-sm btn-outline-primary" @click="requestBill(order.id)">
                                         <i class="fas fa-receipt me-1"></i> Request Bill
                                     </button>
@@ -185,6 +185,21 @@
                             <label class="btn btn-outline-primary" for="waiterMethodCard"><i class="fas fa-credit-card me-1"></i> Card</label>
                         </div>
                     </div>
+                    <template x-if="paymentMethod === 'mobile_money'">
+                        <div>
+                            <div class="mb-3">
+                                <label class="form-label small">Mobile Money Provider</label>
+                                <select class="form-select" x-model="mobileProvider">
+                                    <option value="mtn">MTN Mobile Money</option>
+                                    <option value="airtel">Airtel Money</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small">Reference Number</label>
+                                <input type="text" class="form-control" x-model="paymentReference" placeholder="Transaction reference (e.g. 1234567890)" required>
+                            </div>
+                        </div>
+                    </template>
                     <div class="mb-3">
                         <label class="form-label small">Amount Received</label>
                         <div class="input-group">
@@ -199,7 +214,7 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button class="btn btn-primary" @click="submitPayment()" :disabled="amountReceived < paymentTotal">
+                    <button class="btn btn-primary" @click="submitPayment()" :disabled="amountReceived < paymentTotal || (paymentMethod === 'mobile_money' && !paymentReference.trim())">
                         <i class="fas fa-check me-1"></i> Complete Payment
                     </button>
                 </div>
@@ -239,6 +254,8 @@
             paymentOrderId: null,
             paymentTotal: 0,
             paymentMethod: 'cash',
+            mobileProvider: 'mtn',
+            paymentReference: '',
             amountReceived: 0,
             newOrder: {
                 table_id: '',
@@ -280,11 +297,11 @@
                 return this.newOrder.table_id && this.newOrder.items.some(i => i.product_id && i.qty > 0);
             },
             progressBadgeClass(progress) {
-                const classes = {1: 'bg-secondary', 2: 'bg-info', 3: 'bg-warning text-dark', 4: 'bg-success', 5: 'bg-primary'};
+                const classes = {1: 'bg-secondary', 2: 'bg-info', 3: 'bg-warning text-dark', 4: 'bg-success', 5: 'bg-dark'};
                 return classes[progress] || 'bg-secondary';
             },
             progressBarClass(progress) {
-                const classes = {1: 'bg-secondary', 2: 'bg-info', 3: 'bg-warning', 4: 'bg-success', 5: 'bg-primary'};
+                const classes = {1: 'bg-secondary', 2: 'bg-info', 3: 'bg-warning', 4: 'bg-success', 5: 'bg-dark'};
                 return classes[progress] || 'bg-secondary';
             },
             addItem() { this.newOrder.items.push({ product_id: '', qty: 1 }); },
@@ -344,6 +361,8 @@
                 this.paymentOrderId = order.id;
                 this.paymentTotal = order.total;
                 this.paymentMethod = 'cash';
+                this.mobileProvider = 'mtn';
+                this.paymentReference = '';
                 this.amountReceived = order.total;
                 const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
                 modal.show();
@@ -354,7 +373,13 @@
                     const resp = await fetch('{{ route('waiter.orders.pay') }}', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                        body: JSON.stringify({ order_id: this.paymentOrderId, payment_method: this.paymentMethod, amount_received: this.amountReceived })
+                        body: JSON.stringify({
+                            order_id: this.paymentOrderId,
+                            payment_method: this.paymentMethod,
+                            mobile_provider: this.paymentMethod === 'mobile_money' ? this.mobileProvider : null,
+                            reference_number: this.paymentMethod === 'mobile_money' ? this.paymentReference : null,
+                            amount_received: this.amountReceived
+                        })
                     });
                     const data = await resp.json();
                     if (data.success) {

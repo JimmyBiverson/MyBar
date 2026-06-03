@@ -127,7 +127,7 @@ class OrderController extends Controller
     public function updateStatus(Request $request, Order $order)
     {
         $request->validate([
-            'status' => 'required|string|in:pending,confirmed,preparing,ready,served,completed,cancelled',
+            'status' => 'required|string|in:pending,confirmed,preparing,ready,served,cancelled',
         ]);
 
         try {
@@ -139,13 +139,10 @@ class OrderController extends Controller
             if ($request->status === 'served' && !$order->served_at) {
                 $updateData['served_at'] = Carbon::now();
             }
-            if ($request->status === 'completed' && !$order->completed_at) {
-                $updateData['completed_at'] = Carbon::now();
-            }
 
             $order->update($updateData);
 
-            if ($request->status === 'completed' || $request->status === 'cancelled') {
+            if ($request->status === 'cancelled') {
                 if ($order->table_id) {
                     Table::where('id', $order->table_id)->update(['status' => 'available']);
                 }

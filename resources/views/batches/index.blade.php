@@ -20,13 +20,22 @@
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead class="table-light">
-                    <tr><th>Batch No</th><th>Product</th><th class="text-end">Quantity</th><th class="text-end">Remaining</th><th class="text-end">Cost Price</th><th>Supplier</th><th>Expiry</th><th class="text-end">Actions</th></tr>
+                    <tr><th>Batch No</th><th>Product</th><th class="text-center">Stock Status</th><th class="text-end">Quantity</th><th class="text-end">Remaining</th><th class="text-end">Cost Price</th><th>Supplier</th><th>Expiry</th><th class="text-end">Actions</th></tr>
                 </thead>
                 <tbody>
                     @forelse($batches ?? [] as $batch)
                     <tr>
                         <td class="fw-medium">{{ $batch->batch_no }}</td>
                         <td>{{ $batch->product->name ?? 'N/A' }}</td>
+                        <td class="text-center">
+                            @if($batch->product)
+                            <span class="badge bg-{{ $batch->product->stock_status === 'low' ? 'danger' : ($batch->product->stock_status === 'medium' ? 'warning' : 'success') }}">
+                                {{ ucfirst($batch->product->stock_status) }}
+                            </span>
+                            @else
+                            <span class="text-muted">N/A</span>
+                            @endif
+                        </td>
                         <td class="text-end">{{ number_format($batch->quantity) }}</td>
                         <td class="text-end">
                             <span class="badge bg-{{ $batch->remaining > 0 ? 'success' : 'secondary' }}">{{ number_format($batch->remaining) }}</span>
@@ -40,7 +49,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="8" class="text-center text-muted py-4">No batches found</td></tr>
+                    <tr><td colspan="9" class="text-center text-muted py-4">No batches found</td></tr>
                     @endforelse
                 </tbody>
             </table>

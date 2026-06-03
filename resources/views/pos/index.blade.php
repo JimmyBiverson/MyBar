@@ -48,7 +48,9 @@
                                         </div>
                                         <h6 class="mb-1 small fw-semibold" x-text="product.name"></h6>
                                         <div class="text-primary fw-bold small" x-text="formatCurrency(product.selling_price)"></div>
-                                        <small class="text-muted d-block" x-text="'Stock: ' + product.stock"></small>
+                                        <small class="d-block">
+                                            <span :class="'badge bg-' + (product.stock_status === 'low' ? 'danger' : (product.stock_status === 'medium' ? 'warning' : 'success'))" x-text="'Stock: ' + product.stock"></span>
+                                        </small>
                                     </div>
                                 </div>
                             </div>
@@ -65,7 +67,7 @@
         </div>
 
         <div class="col-lg-5 col-xl-4">
-            <div class="card mb-3">
+            <div class="card mb-3" :class="{ 'new-order-alert': newOrderAlert }">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span><i class="fas fa-clipboard-list me-2"></i>Pending Orders</span>
                     <span class="badge bg-warning" x-text="pendingOrders.length"></span>
@@ -85,6 +87,9 @@
                                 <small class="text-muted" x-text="'Waiter: ' + order.waiter_name + ' | ' + order.items_count + ' items'"></small>
                                     <small class="text-muted d-block" x-show="order.customer_name" x-text="'Customer: ' + order.customer_name"></small>
                                 <span class="badge ms-1" :class="order.status === 'pending' ? 'bg-warning text-dark' : 'bg-info'" x-text="order.status"></span>
+                                <template x-if="order.bill_requested">
+                                    <span class="badge bg-success ms-1"><i class="fas fa-credit-card me-1"></i> Bill Ready</span>
+                                </template>
                             </div>
                             <div class="text-end small">
                                 <div class="fw-bold" x-text="formatCurrency(order.total)"></div>
@@ -188,6 +193,12 @@
     @media (max-width: 991px) { .cart-panel { position: fixed; bottom: 0; left: 0; right: 0; z-index: 1050; border-radius: 16px 16px 0 0; max-height: 60vh; } }
     .order-item-checkbox { width: 18px; height: 18px; cursor: pointer; }
     .item-unavailable { opacity: 0.5; text-decoration: line-through; }
+    @keyframes pulse-alert {
+        0% { background-color: transparent; }
+        50% { background-color: rgba(255, 193, 7, 0.25); }
+        100% { background-color: transparent; }
+    }
+    .new-order-alert { animation: pulse-alert 0.6s ease 3; }
 </style>
 @endpush
 
@@ -216,15 +227,49 @@
             taxRate: {{ $taxRate ?? 0 }},
             serviceChargeRate: {{ $serviceChargeRate ?? 0 }},
             filteredProducts: [],
+            previousOrderCount: 0,
+            newOrderAlert: false,
+            preloadOrder: @json($preloadOrder ?? null),
             init() {
                 this.filteredProducts = [...this.products];
                 this.fetchPendingOrders();
                 window.cacheAppData(this.products, this.categories);
+                if (this.preloadOrder) {
+                    this.autoLoadAndAccept();
+                }
+            },
+            playNotificationSound() {
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const playTone = (freq, start, duration) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.frequency.value = freq;
+                        osc.type = 'sine';
+                        gain.gain.setValueAtTime(0.3, start);
+                        gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+                        osc.start(start);
+                        osc.stop(start + duration);
+                    };
+                    playTone(800, ctx.currentTime, 0.15);
+                    playTone(1000, ctx.currentTime + 0.15, 0.2);
+                    setTimeout(() => ctx.close(), 1000);
+                } catch(e) {}
             },
             async fetchPendingOrders() {
                 try {
                     const resp = await fetch('{{ route('pos.orders') }}');
                     const data = await resp.json();
+                    const newCount = (data.orders || []).length;
+                    if (newCount > this.previousOrderCount && this.previousOrderCount > 0) {
+                        this.playNotificationSound();
+                        this.newOrderAlert = true;
+                        setTimeout(() => { this.newOrderAlert = false; }, 3000);
+                        Swal.fire({ icon: 'info', title: 'New Order!', text: 'A new order has been received', timer: 3000, showConfirmButton: false, toast: true, position: 'top-end' });
+                    }
+                    this.previousOrderCount = newCount;
                     this.pendingOrders = data.orders || [];
                 } catch(e) { this.pendingOrders = []; }
                 setTimeout(() => this.fetchPendingOrders(), 15000);
@@ -282,7 +327,7 @@
                 return (this.subtotal - this.discountAmount) * (this.serviceChargeRate / 100);
             },
             get total() {
-                return this.subtotal - this.discountAmount + this.tax + this.serviceCharge;
+                return this.subtotal - this.discountAmount;
             },
             get itemCount() {
                 return this.cart.reduce((sum, item) => sum + item.qty, 0);
@@ -293,7 +338,7 @@
                 const formatted = Number(val).toFixed(s.decimal_digits || 0).replace(/\B(?=(\d{3})+(?!\d))/g, s.thousand_separator || ',');
                 return s.position === 'before' ? s.symbol + ' ' + formatted : formatted + ' ' + s.symbol;
             },
-            loadPendingOrder(order) {
+            loadPendingOrder(order, silent = false) {
                 this.activeOrderId = order.id;
                 this.orderAccepted = order.status === 'confirmed';
                 this.orderItemStatuses = {};
@@ -314,7 +359,37 @@
                 this.discount = 0;
                 this.discountType = 'percentage';
                 this.selectedCustomer = null;
-                Swal.fire({ icon: 'info', title: 'Order Loaded', text: 'Order #' + order.order_number + ' from ' + order.waiter_name, timer: 2000, showConfirmButton: false });
+                if (!silent) {
+                    Swal.fire({ icon: 'info', title: 'Order Loaded', text: 'Order #' + order.order_number + ' from ' + order.waiter_name, timer: 2000, showConfirmButton: false });
+                }
+                if (order.bill_requested) {
+                    this.orderAccepted = true;
+                    this.fetchPendingOrders();
+                    if (order.status === 'pending') {
+                        const url = '{{ route('pos.accept-order', ['order' => 'ORDER_ID']) }}'.replace('ORDER_ID', this.activeOrderId);
+                        fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+                            body: JSON.stringify({})
+                        }).catch(() => {});
+                    }
+                    const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+                    paymentModal.show();
+                }
+            },
+            async autoLoadAndAccept() {
+                this.loadPendingOrder(this.preloadOrder, true);
+                this.orderAccepted = true;
+                this.preloadOrder = null;
+                this.fetchPendingOrders();
+                const url = '{{ route('pos.accept-order', ['order' => 'ORDER_ID']) }}'.replace('ORDER_ID', this.activeOrderId);
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+                    body: JSON.stringify({})
+                }).catch(() => {});
+                const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+                paymentModal.show();
             },
             async acceptOrder() {
                 if (!this.activeOrderId) return;
@@ -331,8 +406,9 @@
                     const data = await resp.json();
                     if (data.success) {
                         this.orderAccepted = true;
-                        Swal.fire({ icon: 'success', title: 'Order Accepted', timer: 1500, showConfirmButton: false });
                         this.fetchPendingOrders();
+                        const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+                        paymentModal.show();
                     }
                 } catch(e) {
                     Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to accept order' });
@@ -397,7 +473,7 @@
             splitBill() {
                 Swal.fire({ title: 'Split Bill', text: 'Split bill functionality - coming soon', icon: 'info' });
             },
-            async processPayment(method, amountReceived) {
+            async processPayment(method, amountReceived, mobileProvider = null, referenceNumber = null) {
                 const billedItemIds = Object.entries(this.orderItemStatuses)
                     .filter(([_, v]) => v.selected)
                     .map(([id, _]) => parseInt(id));
@@ -411,6 +487,8 @@
                         discount: this.discount,
                         discount_type: this.discountType,
                         payment_method: method,
+                        mobile_provider: method === 'mobile_money' ? mobileProvider : null,
+                        reference_number: method === 'mobile_money' ? referenceNumber : null,
                         amount_received: amountReceived,
                         total: this.total,
                         order_id: this.activeOrderId,

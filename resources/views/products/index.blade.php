@@ -35,7 +35,8 @@
                         <th>Price</th>
                         <th>Cost</th>
                         <th class="text-center">Stock</th>
-                        <th class="text-center">Status</th>
+                        <th class="text-center">Stock Status</th>
+                        <th class="text-center">Active</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -47,8 +48,13 @@
                         <td>{{ number_format($product->selling_price, 0) }}</td>
                         <td>{{ number_format($product->cost_price, 0) }}</td>
                         <td class="text-center">
-                            <span class="badge bg-{{ $product->current_stock <= $product->reorder_level ? 'danger' : 'success' }}">
+                            <span class="badge bg-{{ $product->stock_status === 'low' ? 'danger' : ($product->stock_status === 'medium' ? 'warning' : 'success') }}">
                                 {{ $product->current_stock }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-{{ $product->stock_status === 'low' ? 'danger' : ($product->stock_status === 'medium' ? 'warning' : 'success') }}">
+                                {{ ucfirst($product->stock_status) }}
                             </span>
                         </td>
                         <td class="text-center">
@@ -64,7 +70,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="7" class="text-center text-muted py-4">No products found</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted py-4">No products found</td></tr>
                     @endforelse
                 </tbody>
             </table>

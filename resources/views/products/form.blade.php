@@ -55,7 +55,16 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Stock</label>
-                            <input type="number" class="form-control @error('current_stock') is-invalid @enderror" name="current_stock" value="{{ old('current_stock', $product->current_stock ?? 0) }}">
+                            <div class="input-group">
+                                <input type="number" class="form-control @error('current_stock') is-invalid @enderror" name="current_stock" value="{{ old('current_stock', $product->current_stock ?? 0) }}">
+                                @if(isset($product))
+                                <span class="input-group-text p-0">
+                                    <span class="badge bg-{{ $product->stock_status === 'low' ? 'danger' : ($product->stock_status === 'medium' ? 'warning' : 'success') }} d-block rounded-0 px-2 py-1">
+                                        {{ ucfirst($product->stock_status) }}
+                                    </span>
+                                </span>
+                                @endif
+                            </div>
                             @error('current_stock') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-4">
