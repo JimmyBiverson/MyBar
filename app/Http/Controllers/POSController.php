@@ -40,13 +40,14 @@ class POSController extends Controller
         if ($request->filled('order_id')) {
             $order = Order::with(['items.product', 'table', 'waiter', 'customer'])
                 ->find($request->order_id);
-            if ($order && in_array($order->status, ['pending', 'confirmed'])) {
+            if ($order && !in_array($order->status, ['completed', 'cancelled'])) {
                 $preloadOrder = [
                     'id' => $order->id,
                     'order_number' => $order->order_number,
                     'table_name' => $order->table->name ?? 'Takeaway',
                     'waiter_name' => $order->waiter->name ?? 'N/A',
                     'customer_name' => $order->customer->name ?? null,
+                    'customer_id' => $order->customer_id,
                     'items_count' => $order->items->count(),
                     'total' => $order->items->sum('subtotal'),
                     'status' => $order->status,
@@ -74,7 +75,7 @@ class POSController extends Controller
 
         $orders = Order::with(['items.product', 'table', 'waiter', 'customer', 'bill'])
             ->where(function ($q) {
-                $q->whereIn('status', ['pending', 'confirmed'])
+                $q->whereIn('status', ['pending', 'confirmed', 'preparing', 'ready', 'served'])
                   ->orWhereHas('bill', fn ($q) => $q->where('payment_status', 'unpaid'));
             })
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
@@ -86,6 +87,7 @@ class POSController extends Controller
                 'table_name' => $o->table->name ?? 'Takeaway',
                 'waiter_name' => $o->waiter->name ?? 'N/A',
                 'customer_name' => $o->customer->name ?? null,
+                'customer_id' => $o->customer_id,
                 'items_count' => $o->items->count(),
                 'total' => $o->items->sum('subtotal'),
                 'status' => $o->status,
@@ -112,7 +114,7 @@ class POSController extends Controller
         $branchId = auth()->user()->branch_id;
 
         $count = Order::where(function ($q) {
-                $q->whereIn('status', ['pending', 'confirmed'])
+                $q->whereIn('status', ['pending', 'confirmed', 'preparing', 'ready', 'served'])
                   ->orWhereHas('bill', fn ($q) => $q->where('payment_status', 'unpaid'));
             })
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
@@ -237,27 +239,57 @@ class POSController extends Controller
             $taxAmount = $afterDiscount * ((float) ($request->tax_rate ?? 0) / 100);
             $serviceCharge = $afterDiscount * ((float) ($request->service_charge_rate ?? 0) / 100);
 
-            $bill = Bill::create([
-                'bill_number' => Bill::generateBillNumber(),
-                'order_id' => $request->order_id,
-                'customer_id' => $request->customer_id,
-                'discount_value' => $discountValue,
-                'discount_type' => $discountType,
-                'discount_amount' => $discountAmount,
-                'subtotal' => $subtotal,
-                'tax_amount' => $taxAmount,
-                'service_charge' => $serviceCharge,
-                'total_amount' => $request->total,
-                'paid_amount' => $paidAmount,
-                'change_amount' => $changeAmount,
-                'payment_method' => $request->payment_method,
-                'mobile_provider' => $request->mobile_provider,
-                'reference_number' => $request->reference_number,
-                'payment_status' => 'paid',
-                'cashier_id' => auth()->id(),
-                'processed_by_role' => 'cashier',
-                'branch_id' => auth()->user()->branch_id,
-            ]);
+            // Check if there is an existing unpaid bill for this order
+            $bill = null;
+            if ($request->order_id) {
+                $bill = Bill::where('order_id', $request->order_id)
+                    ->where('payment_status', 'unpaid')
+                    ->first();
+            }
+
+            if ($bill) {
+                $bill->update([
+                    'customer_id' => $request->customer_id,
+                    'discount_value' => $discountValue,
+                    'discount_type' => $discountType,
+                    'discount_amount' => $discountAmount,
+                    'subtotal' => $subtotal,
+                    'tax_amount' => $taxAmount,
+                    'service_charge' => $serviceCharge,
+                    'total_amount' => $request->total,
+                    'paid_amount' => $paidAmount,
+                    'change_amount' => $changeAmount,
+                    'payment_method' => $request->payment_method,
+                    'mobile_provider' => $request->mobile_provider,
+                    'reference_number' => $request->reference_number,
+                    'payment_status' => 'paid',
+                    'cashier_id' => auth()->id(),
+                    'processed_by_role' => 'cashier',
+                ]);
+                $bill->items()->delete();
+            } else {
+                $bill = Bill::create([
+                    'bill_number' => Bill::generateBillNumber(),
+                    'order_id' => $request->order_id,
+                    'customer_id' => $request->customer_id,
+                    'discount_value' => $discountValue,
+                    'discount_type' => $discountType,
+                    'discount_amount' => $discountAmount,
+                    'subtotal' => $subtotal,
+                    'tax_amount' => $taxAmount,
+                    'service_charge' => $serviceCharge,
+                    'total_amount' => $request->total,
+                    'paid_amount' => $paidAmount,
+                    'change_amount' => $changeAmount,
+                    'payment_method' => $request->payment_method,
+                    'mobile_provider' => $request->mobile_provider,
+                    'reference_number' => $request->reference_number,
+                    'payment_status' => 'paid',
+                    'cashier_id' => auth()->id(),
+                    'processed_by_role' => 'cashier',
+                    'branch_id' => auth()->user()->branch_id,
+                ]);
+            }
 
             foreach ($request->items as $item) {
                 $product = Product::find($item['id']);
@@ -302,10 +334,16 @@ class POSController extends Controller
                     $pendingItems = $order->items()->whereNotIn('status', ['served', 'cancelled'])->count();
                     if ($pendingItems === 0) {
                         $order->update(['status' => 'completed', 'completed_at' => now()]);
+                        if ($order->table_id) {
+                            Table::where('id', $order->table_id)->update(['status' => 'available']);
+                        }
                     }
                 } else {
                     $order->items()->update(['status' => 'served']);
                     $order->update(['status' => 'completed', 'completed_at' => now()]);
+                    if ($order->table_id) {
+                        Table::where('id', $order->table_id)->update(['status' => 'available']);
+                    }
                 }
             }
 

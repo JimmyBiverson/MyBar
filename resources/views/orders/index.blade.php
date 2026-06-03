@@ -46,6 +46,11 @@
                         </td>
                         <td><small>{{ $order->created_at->format('d M Y H:i') }}</small></td>
                         <td class="text-end">
+                            @if(!in_array($order->status, ['completed', 'cancelled']))
+                                <a href="{{ route('pos.index', ['order_id' => $order->id]) }}" class="btn btn-sm btn-success me-1" title="Pay via POS">
+                                    <i class="fas fa-credit-card"></i>
+                                </a>
+                            @endif
                             <a href="{{ route('orders.show', $order->id) }}" class="btn btn-sm btn-outline-info"><i class="fas fa-eye"></i></a>
                             <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete('{{ route('orders.destroy', $order->id) }}')"><i class="fas fa-trash"></i></button>
                         </td>

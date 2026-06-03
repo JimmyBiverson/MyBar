@@ -74,8 +74,15 @@
                         <option value="90">90 Days</option>
                     </select>
                 </div>
-                <div class="card-body">
-                    <canvas id="salesChart" height="280"></canvas>
+                <div class="card-body position-relative">
+                    <div x-show="chartLoading" class="position-absolute top-50 start-50 translate-middle" style="z-index:5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="salesChart" :class="{ 'opacity-25': chartLoading }"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -83,7 +90,9 @@
             <div class="card">
                 <div class="card-header"><i class="fas fa-chart-pie me-2"></i>Payment Methods (Today)</div>
                 <div class="card-body">
-                    <canvas id="paymentChart" height="240"></canvas>
+                    <div style="height: 220px; position: relative;">
+                        <canvas id="paymentChart"></canvas>
+                    </div>
                     <div class="mt-2 text-center text-muted small">
                         @forelse($paymentMethods ?? [] as $pm)
                             <span class="badge bg-secondary me-1">{{ ucwords(str_replace('_', ' ', $pm->payment_method)) }}: {{ number_format($pm->total, 0) }}</span>
@@ -98,7 +107,9 @@
             <div class="card">
                 <div class="card-header"><i class="fas fa-boxes me-2"></i>Stock Status</div>
                 <div class="card-body">
-                    <canvas id="stockChart" height="240"></canvas>
+                    <div style="height: 220px; position: relative;">
+                        <canvas id="stockChart"></canvas>
+                    </div>
                     <div class="mt-2 text-center text-muted small">
                         <span class="badge bg-danger me-1">Low: {{ $stockStatusCounts['low'] ?? 0 }}</span>
                         <span class="badge bg-warning text-dark me-1">Medium: {{ $stockStatusCounts['medium'] ?? 0 }}</span>
@@ -209,12 +220,14 @@
                                         </span>
                                     </td>
                                     <td>
-                                        @if($order->bill)
-                                            <span class="badge bg-{{ $order->bill->payment_status === 'paid' ? 'success' : 'warning' }}">
-                                                {{ $order->bill->payment_status === 'paid' ? 'Paid' : 'Unpaid' }}
-                                            </span>
-                                        @else
+                                        @if($order->status === 'cancelled')
                                             <span class="text-muted small">—</span>
+                                        @elseif($order->bill && $order->bill->payment_status === 'paid')
+                                            <span class="badge bg-success">Paid</span>
+                                        @else
+                                            <a href="{{ route('pos.index', ['order_id' => $order->id]) }}" class="btn btn-sm btn-primary py-0 px-2" style="font-size: 0.75rem;" title="Process Payment via POS">
+                                                <i class="fas fa-credit-card me-1"></i> Pay
+                                            </a>
                                         @endif
                                     </td>
                                 </tr>
@@ -267,7 +280,9 @@
             <div class="card">
                 <div class="card-header"><i class="fas fa-chart-pie me-2"></i>Sales by Category (This Month)</div>
                 <div class="card-body">
-                    <canvas id="categoryChart" height="240"></canvas>
+                    <div style="height: 220px; position: relative;">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
                     <div class="mt-2 text-center text-muted small">
                         @forelse($categorySales ?? [] as $cs)
                             <span class="badge bg-secondary me-1">{{ $cs['category'] }}: {{ number_format($cs['total'], 0) }}</span>
@@ -284,10 +299,9 @@
 
 @push('scripts')
 <script>
-    Chart.register(ChartDataLabels);
-
     function dashboardStats() {
         return {
+            chartAvailable: typeof Chart !== 'undefined',
             todaySales: {{ $todaySales ?? 0 }},
             todaySalesPercent: {{ $todaySalesPercent ?? 0 }},
             monthlySales: {{ $monthlySales ?? 0 }},
@@ -296,273 +310,209 @@
             expensePercent: {{ $expensePercent ?? 0 }},
             lowStockCount: {{ $lowStockCount ?? 0 }},
             salesPeriod: '30',
+            chartLoading: false,
             chart: null,
             paymentChart: null,
             stockChart: null,
             categoryChart: null,
+            abbreviate(val) {
+                const n = Number(val);
+                if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+                if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+                return n.toFixed(0);
+            },
             formatCurrency(val) {
                 const s = window.currencySettings || { symbol: 'UGX', position: 'before', thousand_separator: ',', decimal_separator: '.', decimal_digits: 0 };
                 const formatted = Number(val).toFixed(s.decimal_digits || 0).replace(/\B(?=(\d{3})+(?!\d))/g, s.thousand_separator || ',');
                 return s.position === 'before' ? s.symbol + ' ' + formatted : formatted + ' ' + s.symbol;
             },
             initChart() {
-                window.cacheAppData(null, null, { todaySales: this.todaySales, monthlySales: this.monthlySales });
-                this.renderChart(
-                    @json($chartLabels ?? []),
-                    @json($chartValues ?? [])
-                );
-                this.renderPieCharts();
+                if (!this.chartAvailable) { console.warn('Chart.js not loaded'); return; }
+                this.$nextTick(() => {
+                    this.renderSalesChart(@json($chartLabels ?? []), @json($chartValues ?? []));
+                    this.renderPaymentChart();
+                    this.renderStockChart();
+                    this.renderCategoryChart();
+                });
             },
-            centerDoughnutText(val) {
+            makeCenterTextPlugin(text) {
+                // Use a unique id so Chart.js won't warn about duplicate plugin ids
+                const uid = 'centerText_' + (++window._chartCenterTextCounter);
                 return {
-                    id: 'centerText',
+                    id: uid,
                     afterDraw(chart) {
                         const { ctx, width, height } = chart;
-                        const s = window.currencySettings || { symbol: 'UGX' };
-                        const text = s.symbol + ' ' + Number(val).toLocaleString();
                         ctx.save();
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
-                        ctx.font = 'bold 16px Arial';
-                        ctx.fillStyle = '#666';
+                        ctx.font = 'bold 13px Arial';
+                        ctx.fillStyle = '#555';
                         ctx.fillText(text, width / 2, height / 2);
                         ctx.restore();
                     }
                 };
             },
-            renderPieCharts() {
-                const pmData = @json($paymentMethods ?? []);
-                const pmEl = document.getElementById('paymentChart');
-                if (pmEl) {
-                    const pmLabels = pmData.length ? pmData.map(pm => pm.payment_method ? pm.payment_method.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'N/A') : ['No Data'];
-                    const pmValues = pmData.length ? pmData.map(pm => Number(pm.total)) : [1];
-                    const pmColors = pmData.length ? ['#7367f0', '#28c76f', '#ff9f43', '#ea5455', '#00cfe8'] : ['#e0e0e0'];
-                    const pmTotal = pmValues.reduce((a, b) => a + b, 0);
-                    this.paymentChart = new Chart(pmEl, {
+            renderPaymentChart() {
+                const el = document.getElementById('paymentChart');
+                if (!el) return;
+                if (this.paymentChart) { this.paymentChart.destroy(); this.paymentChart = null; }
+                const raw = @json($paymentMethods ?? []);
+                const has = raw.length > 0;
+                const labels = has ? raw.map(p => (p.payment_method||'N/A').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())) : ['No Payments Today'];
+                const values = has ? raw.map(p => Number(p.total)) : [1];
+                const colors = has ? ['#7367f0','#28c76f','#ff9f43','#ea5455','#00cfe8','#fd7e14'] : ['#e0e0e0'];
+                const total = has ? values.reduce((a,b)=>a+b,0) : 0;
+                const self = this;
+                try {
+                    this.paymentChart = new Chart(el, {
                         type: 'doughnut',
-                        data: {
-                            labels: pmLabels,
-                            datasets: [{ data: pmValues, backgroundColor: pmColors }]
-                        },
+                        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
                         options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            cutout: '65%',
+                            responsive: true, maintainAspectRatio: false, cutout: '68%',
                             plugins: {
-                                legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10, font: { size: 10 } } },
-                                datalabels: {
-                                    color: '#fff',
-                                    font: { weight: 'bold', size: 11 },
-                                    formatter: (val) => val > (pmTotal * 0.05) ? this.formatCurrency(val) : '',
-                                    anchor: 'center',
-                                    align: 'center',
-                                }
-                            }
-                        },
-                        plugins: [this.centerDoughnutText(pmTotal)]
-                    });
-                }
-
-                const ssData = @json($stockStatusCounts ?? ['low' => 0, 'medium' => 0, 'good' => 0]);
-                const ssEl = document.getElementById('stockChart');
-                if (ssEl) {
-                    const ssValues = [ssData.low, ssData.medium, ssData.good];
-                    const hasSsData = ssValues.some(v => v > 0);
-                    this.stockChart = new Chart(ssEl, {
-                        type: 'doughnut',
-                        data: {
-                            labels: hasSsData ? ['Low', 'Medium', 'Good'] : ['No Data'],
-                            datasets: [{
-                                data: hasSsData ? ssValues : [1],
-                                backgroundColor: hasSsData ? ['#ea5455', '#ff9f43', '#28c76f'] : ['#e0e0e0'],
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            cutout: '65%',
-                            plugins: {
-                                legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10, font: { size: 10 } } },
-                                datalabels: hasSsData ? {
-                                    color: '#fff',
-                                    font: { weight: 'bold', size: 12 },
-                                    formatter: (val) => val,
-                                    anchor: 'center',
-                                    align: 'center',
+                                legend: { position: 'bottom', labels: { boxWidth: 10, padding: 8, font: { size: 10 } } },
+                                tooltip: { callbacks: { label: ctx => has ? ' ' + self.formatCurrency(ctx.raw) : 'No data' } },
+                                datalabels: has ? {
+                                    color: '#fff', font: { weight: 'bold', size: 10 },
+                                    formatter: v => v > total * 0.07 ? self.abbreviate(v) : '',
+                                    anchor: 'center', align: 'center'
                                 } : { display: false }
                             }
                         },
-                        plugins: [this.centerDoughnutText(hasSsData ? ssValues.reduce((a, b) => a + b, 0) : 0)]
+                        plugins: [this.makeCenterTextPlugin(has ? self.formatCurrency(total) : 'No Data')]
                     });
-                }
-
-                const catData = @json($categorySales ?? []);
-                const catEl = document.getElementById('categoryChart');
-                if (catEl) {
-                    const catColors = ['#7367f0', '#28c76f', '#ff9f43', '#ea5455', '#00cfe8', '#a8aaaf', '#ffd166'];
-                    const hasCatData = catData.length > 0;
-                    const catLabels = hasCatData ? catData.map(c => c.category) : ['No Data'];
-                    const catValues = hasCatData ? catData.map(c => c.total) : [1];
-                    const catBg = hasCatData ? catColors.slice(0, catData.length) : ['#e0e0e0'];
-                    const catTotal = catValues.reduce((a, b) => a + b, 0);
-                    this.categoryChart = new Chart(catEl, {
-                        type: 'doughnut',
-                        data: {
-                            labels: catLabels,
-                            datasets: [{ data: catValues, backgroundColor: catBg }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            cutout: '65%',
-                            plugins: {
-                                legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10, font: { size: 10 } } },
-                                datalabels: hasCatData ? {
-                                    color: '#fff',
-                                    font: { weight: 'bold', size: 11 },
-                                    formatter: (val) => val > (catTotal * 0.05) ? this.formatCurrency(val) : '',
-                                    anchor: 'center',
-                                    align: 'center',
-                                } : { display: false }
-                            }
-                        },
-                        plugins: [this.centerDoughnutText(catTotal)]
-                    });
-                }
+                } catch(e) { console.error('paymentChart', e); }
             },
-            renderChart(labels, data) {
+            renderStockChart() {
+                const el = document.getElementById('stockChart');
+                if (!el) return;
+                if (this.stockChart) { this.stockChart.destroy(); this.stockChart = null; }
+                const ss = @json($stockStatusCounts ?? ['low' => 0, 'medium' => 0, 'good' => 0]);
+                const values = [Number(ss.low||0), Number(ss.medium||0), Number(ss.good||0)];
+                const total = values.reduce((a,b)=>a+b,0);
+                const has = total > 0;
+                try {
+                    this.stockChart = new Chart(el, {
+                        type: 'doughnut',
+                        data: {
+                            labels: has ? ['Low','Medium','Good'] : ['No Products'],
+                            datasets: [{ data: has ? values : [1], backgroundColor: has ? ['#ea5455','#ff9f43','#28c76f'] : ['#e0e0e0'], borderWidth: 2, borderColor: '#fff' }]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false, cutout: '68%',
+                            plugins: {
+                                legend: { position: 'bottom', labels: { boxWidth: 10, padding: 8, font: { size: 10 } } },
+                                datalabels: has ? {
+                                    color: '#fff', font: { weight: 'bold', size: 11 },
+                                    formatter: v => v > 0 ? v : '', anchor: 'center', align: 'center'
+                                } : { display: false }
+                            }
+                        },
+                        plugins: [this.makeCenterTextPlugin(has ? total + ' items' : 'No Data')]
+                    });
+                } catch(e) { console.error('stockChart', e); }
+            },
+            renderCategoryChart() {
+                const el = document.getElementById('categoryChart');
+                if (!el) return;
+                if (this.categoryChart) { this.categoryChart.destroy(); this.categoryChart = null; }
+                const raw = @json($categorySales ?? []);
+                const has = raw.length > 0;
+                const palette = ['#7367f0','#28c76f','#ff9f43','#ea5455','#00cfe8','#a8aaaf','#ffd166'];
+                const labels = has ? raw.map(c => c.category||'Unknown') : ['No Sales This Month'];
+                const values = has ? raw.map(c => Number(c.total)) : [1];
+                const total = has ? values.reduce((a,b)=>a+b,0) : 0;
+                const self = this;
+                try {
+                    this.categoryChart = new Chart(el, {
+                        type: 'doughnut',
+                        data: { labels, datasets: [{ data: values, backgroundColor: has ? palette.slice(0, raw.length) : ['#e0e0e0'], borderWidth: 2, borderColor: '#fff' }] },
+                        options: {
+                            responsive: true, maintainAspectRatio: false, cutout: '68%',
+                            plugins: {
+                                legend: { position: 'bottom', labels: { boxWidth: 10, padding: 8, font: { size: 10 } } },
+                                tooltip: { callbacks: { label: ctx => has ? ' ' + self.formatCurrency(ctx.raw) : 'No data' } },
+                                datalabels: has ? {
+                                    color: '#fff', font: { weight: 'bold', size: 10 },
+                                    formatter: v => v > total * 0.07 ? self.abbreviate(v) : '',
+                                    anchor: 'center', align: 'center'
+                                } : { display: false }
+                            }
+                        },
+                        plugins: [this.makeCenterTextPlugin(has ? self.formatCurrency(total) : 'No Data')]
+                    });
+                } catch(e) { console.error('categoryChart', e); }
+            },
+            renderSalesChart(labels, data) {
                 const ctx = document.getElementById('salesChart');
                 if (!ctx) return;
-
-                if (this.chart) {
-                    this.chart.destroy();
-                }
-
-                const allZero = data.every(v => Number(v) === 0);
-
-                if (allZero) {
+                if (this.chart) { this.chart.destroy(); this.chart = null; }
+                const nums = (data || []).map(Number);
+                const allZero = nums.every(v => v === 0);
+                const maxVal = allZero ? 0 : Math.max(...nums);
+                const suggestedMax = maxVal > 0 ? maxVal * 1.2 : 50000;
+                const self = this;
+                try {
                     this.chart = new Chart(ctx, {
-                        type: 'line',
+                        type: 'bar',
                         data: {
-                            labels: labels,
+                            labels: labels || [],
                             datasets: [{
-                                label: 'Sales',
-                                data: data,
-                                borderColor: '#7367f0',
-                                backgroundColor: 'rgba(115,103,240,0.1)',
-                                fill: true,
-                                tension: 0.4,
-                                pointRadius: 0,
-                                pointBackgroundColor: '#7367f0',
+                                label: 'Sales (UGX)',
+                                data: nums,
+                                backgroundColor: '#7367f0',
+                                borderRadius: 4,
+                                borderSkipped: false
                             }]
                         },
                         options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
+                            responsive: true, maintainAspectRatio: false,
                             plugins: {
                                 legend: { display: false },
-                                datalabels: { display: false },
-                                emptyState: {
-                                    text: 'No sales data for this period'
+                                tooltip: { callbacks: { label: c => ' ' + self.formatCurrency(c.parsed.y) } },
+                                datalabels: {
+                                    display: c => !allZero && nums[c.dataIndex] > 0,
+                                    color: '#7367f0', anchor: 'end', align: 'top', offset: 4,
+                                    font: { weight: 'bold', size: 9 },
+                                    formatter: v => self.abbreviate(v)
                                 }
                             },
                             scales: {
-                                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' } },
-                                x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } }
+                                y: {
+                                    beginAtZero: true,
+                                    suggestedMax: suggestedMax,
+                                    grid: { color: 'rgba(0,0,0,0.05)' },
+                                    ticks: {
+                                        maxTicksLimit: 6,
+                                        callback: v => { const s = window.currencySettings||{symbol:'UGX'}; return s.symbol+' '+self.abbreviate(v); }
+                                    }
+                                },
+                                x: { grid: { display: false }, ticks: { maxTicksLimit: 10, maxRotation: 0 } }
                             }
                         },
                         plugins: [{
-                            id: 'emptyState',
+                            id: 'noDataMsg',
                             afterDraw(chart) {
-                                const { ctx, width, height, chartArea } = chart;
+                                if (!allZero) return;
+                                const { ctx: c, width, height, chartArea } = chart;
                                 if (!chartArea) return;
-                                const cfg = chart.options.plugins.emptyState || {};
-                                const text = cfg.text || 'No data';
-                                ctx.save();
-                                ctx.textAlign = 'center';
-                                ctx.textBaseline = 'middle';
-                                ctx.font = '15px Arial';
-                                ctx.fillStyle = '#999';
-                                ctx.fillText(text, width / 2, (chartArea.top + chartArea.bottom) / 2);
-                                ctx.restore();
+                                c.save(); c.textAlign = 'center'; c.textBaseline = 'middle';
+                                c.font = '15px Arial'; c.fillStyle = '#bbb';
+                                c.fillText('No sales recorded yet', width/2, (chartArea.top+chartArea.bottom)/2);
+                                c.restore();
                             }
                         }]
                     });
-                    return;
-                }
-
-                this.chart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Sales',
-                            data: data,
-                            borderColor: '#7367f0',
-                            backgroundColor: 'rgba(115,103,240,0.1)',
-                            fill: true,
-                            tension: 0.4,
-                            pointRadius: 4,
-                            pointBackgroundColor: '#7367f0',
-                            pointBorderColor: '#fff',
-                            pointBorderWidth: 2,
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: (ctx) => {
-                                        const s = window.currencySettings || { symbol: 'UGX', position: 'before' };
-                                        return s.symbol + ' ' + Number(ctx.parsed.y).toLocaleString();
-                                    }
-                                }
-                            },
-                            datalabels: {
-                                display: (ctx) => Number(ctx.dataset.data[ctx.dataIndex]) > 0,
-                                color: '#7367f0',
-                                anchor: 'end',
-                                align: 'end',
-                                offset: 2,
-                                font: { weight: 'bold', size: 10 },
-                                formatter: (val) => {
-                                    const s = window.currencySettings || { symbol: 'UGX' };
-                                    return s.symbol + ' ' + Number(val).toLocaleString();
-                                }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: { color: 'rgba(0,0,0,0.04)' },
-                                ticks: {
-                                    callback: (val) => {
-                                        const s = window.currencySettings || { symbol: 'UGX' };
-                                        return s.symbol + ' ' + Number(val).toLocaleString();
-                                    }
-                                }
-                            },
-                            x: {
-                                grid: { display: false },
-                                ticks: { maxTicksLimit: 10 }
-                            }
-                        }
-                    }
-                });
+                } catch(e) { console.error('salesChart', e); }
             },
             async updateChart() {
+                this.chartLoading = true;
                 try {
                     const resp = await fetch('{{ route('dashboard.chart-data') }}?days=' + this.salesPeriod);
                     const data = await resp.json();
-                    if (data.labels && data.values) {
-                        this.renderChart(data.labels, data.values);
-                    }
-                } catch(e) {
-                    console.error('Failed to load chart data', e);
-                }
+                    if (data.labels && data.values) this.renderSalesChart(data.labels, data.values);
+                } catch(e) { console.error('Chart update failed', e); }
+                finally { this.chartLoading = false; }
             }
         }
     }

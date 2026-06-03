@@ -192,13 +192,8 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('/', [ReportController::class, 'index'])->name('index');
-        Route::post('/daily', [ReportController::class, 'dailySales'])->name('daily');
-        Route::post('/monthly', [ReportController::class, 'monthlySales'])->name('monthly');
-        Route::post('/profit-loss', [ReportController::class, 'profitLoss'])->name('profit-loss');
-        Route::post('/inventory', [ReportController::class, 'inventory'])->name('inventory');
-        Route::post('/products', [ReportController::class, 'productPerformance'])->name('products');
-        Route::post('/export-pdf', [ReportController::class, 'exportPdf'])->name('export-pdf');
-        Route::post('/export-excel', [ReportController::class, 'exportExcel'])->name('export-excel');
+        Route::get('/export-pdf', [ReportController::class, 'exportPdf'])->name('export-pdf');
+        Route::get('/export-excel', [ReportController::class, 'exportExcel'])->name('export-excel');
     });
 
     Route::prefix('settings')->name('settings.')->group(function () {

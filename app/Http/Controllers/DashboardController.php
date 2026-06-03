@@ -107,11 +107,11 @@ class DashboardController extends Controller
 
         $chartDays = 30;
         $billChartRaw = (clone $this->paidBillsQuery($branchId))
-            ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(total_amount) as total'))
+            ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(total_amount) as total_sum'))
             ->whereDate('created_at', '>=', now()->subDays($chartDays))
             ->groupBy('date')
             ->orderBy('date')
-            ->pluck('total', 'date');
+            ->pluck('total_sum', 'date');
 
         $chartData = collect();
         for ($i = $chartDays; $i >= 0; $i--) {
@@ -129,6 +129,7 @@ class DashboardController extends Controller
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->groupBy('payment_method')
             ->selectRaw('payment_method, COUNT(*) as count, SUM(total_amount) as total')
+            ->toBase()
             ->get();
 
         $topCustomers = Bill::select(
@@ -147,7 +148,7 @@ class DashboardController extends Controller
 
         $categorySales = BillItem::select(
             'products.category_id',
-            'categories.name as category_name',
+            DB::raw('COALESCE(categories.name, \'Uncategorized\') as category_name'),
             DB::raw('SUM(bill_items.subtotal) as total')
         )
             ->join('products', 'bill_items.product_id', '=', 'products.id')
@@ -159,7 +160,7 @@ class DashboardController extends Controller
             ->orderByDesc('total')
             ->get()
             ->map(fn ($item) => [
-                'category' => $item->category_name ?? 'Uncategorized',
+                'category' => $item->category_name,
                 'total' => (float) $item->total,
             ]);
 
@@ -181,11 +182,11 @@ class DashboardController extends Controller
 
         $billRaw = Bill::where('payment_status', 'paid')
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-            ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(total_amount) as total'))
+            ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(total_amount) as total_sum'))
             ->whereDate('created_at', '>=', now()->subDays($days))
             ->groupBy('date')
             ->orderBy('date')
-            ->pluck('total', 'date');
+            ->pluck('total_sum', 'date');
 
         $data = collect();
         for ($i = $days; $i >= 0; $i--) {

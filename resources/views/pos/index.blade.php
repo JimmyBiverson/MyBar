@@ -231,6 +231,7 @@
             newOrderAlert: false,
             preloadOrder: @json($preloadOrder ?? null),
             init() {
+                window.posAppInstance = this;
                 this.filteredProducts = [...this.products];
                 this.fetchPendingOrders();
                 window.cacheAppData(this.products, this.categories);
@@ -358,7 +359,7 @@
                     }));
                 this.discount = 0;
                 this.discountType = 'percentage';
-                this.selectedCustomer = null;
+                this.selectedCustomer = order.customer_id || null;
                 if (!silent) {
                     Swal.fire({ icon: 'info', title: 'Order Loaded', text: 'Order #' + order.order_number + ' from ' + order.waiter_name, timer: 2000, showConfirmButton: false });
                 }
@@ -373,8 +374,15 @@
                             body: JSON.stringify({})
                         }).catch(() => {});
                     }
-                    const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
-                    paymentModal.show();
+                    this.$nextTick(() => {
+                        setTimeout(() => {
+                            const el = document.getElementById('paymentModal');
+                            if (el) {
+                                const paymentModal = new bootstrap.Modal(el);
+                                paymentModal.show();
+                            }
+                        }, 200);
+                    });
                 }
             },
             async autoLoadAndAccept() {
@@ -388,8 +396,15 @@
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
                     body: JSON.stringify({})
                 }).catch(() => {});
-                const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
-                paymentModal.show();
+                this.$nextTick(() => {
+                    setTimeout(() => {
+                        const el = document.getElementById('paymentModal');
+                        if (el) {
+                            const paymentModal = new bootstrap.Modal(el);
+                            paymentModal.show();
+                        }
+                    }, 200);
+                });
             },
             async acceptOrder() {
                 if (!this.activeOrderId) return;

@@ -179,6 +179,36 @@
     </div>
 
     <script>
+        // Define caching fallbacks to prevent JavaScript crashes if app.js is not loaded
+        window._chartCenterTextCounter = 0; // unique IDs for per-chart center-text plugins
+        window.cacheAppData = window.cacheAppData || function(products, categories, settings) {
+            try {
+                if (products) localStorage.setItem('mybar_products', JSON.stringify(products));
+                if (categories) localStorage.setItem('mybar_categories', JSON.stringify(categories));
+                if (settings) localStorage.setItem('mybar_settings', JSON.stringify(settings));
+            } catch (e) {
+                console.warn('Failed to cache app data:', e);
+            }
+        };
+
+        window.getCachedProducts = window.getCachedProducts || function() {
+            try {
+                const data = localStorage.getItem('mybar_products');
+                return data ? JSON.parse(data) : [];
+            } catch (e) {
+                return [];
+            }
+        };
+
+        window.getCachedCategories = window.getCachedCategories || function() {
+            try {
+                const data = localStorage.getItem('mybar_categories');
+                return data ? JSON.parse(data) : [];
+            } catch (e) {
+                return [];
+            }
+        };
+
         function toastHandler() {
             return {
                 toasts: [],
@@ -249,11 +279,19 @@
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <script>
+        // Register ChartDataLabels globally as soon as both libs are available
+        if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
+            Chart.register(ChartDataLabels);
+        }
+    </script>
 
     @stack('scripts')
+
+    {{-- Alpine must load LAST so x-init can see Chart.js already loaded --}}
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" defer></script>
 </body>
 </html>

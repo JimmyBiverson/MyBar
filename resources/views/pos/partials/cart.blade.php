@@ -90,12 +90,11 @@
     </div>
 
     <div class="d-grid gap-2">
-        <button class="btn btn-outline-secondary btn-sm" @click="holdCart()" :disabled="cart.length === 0">
-            <i class="fas fa-clock me-1"></i> Hold
-        </button>
-        <button class="btn btn-outline-secondary btn-sm" @click="splitBill()" :disabled="cart.length === 0">
-            <i class="fas fa-scissors me-1"></i> Split Bill
-        </button>
+        <template x-if="!activeOrderId">
+            <button class="btn btn-outline-secondary btn-sm" @click="holdCart()" :disabled="cart.length === 0">
+                <i class="fas fa-clock me-1"></i> Hold Bill
+            </button>
+        </template>
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#paymentModal" :disabled="cart.length === 0">
             <i class="fas fa-credit-card me-1"></i> Pay Now
         </button>

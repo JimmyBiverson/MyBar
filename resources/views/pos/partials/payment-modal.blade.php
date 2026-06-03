@@ -8,7 +8,7 @@
             <div class="modal-body">
                 <div class="text-center mb-4">
                     <small class="text-muted">Total Amount</small>
-                    <h2 class="fw-bold text-primary" x-text="$parent.formatCurrency($parent.total)"></h2>
+                    <h2 class="fw-bold text-primary" x-text="formatCurrency(total)"></h2>
                 </div>
 
                 <div class="mb-3">
@@ -76,8 +76,11 @@
                         this.paymentReference = '';
                     });
                 },
+                get parent() {
+                    return window.posAppInstance || null;
+                },
                 get total() {
-                    return this.$parent ? this.$parent.total : 0;
+                    return this.parent ? this.parent.total : 0;
                 },
                 get change() {
                     return parseFloat(this.amountReceived || 0) - this.total;
@@ -88,9 +91,11 @@
                     return s.position === 'before' ? s.symbol + ' ' + formatted : formatted + ' ' + s.symbol;
                 },
                 submitPayment() {
-                    if (this.$parent) {
-                        this.$parent.processPayment(this.paymentMethod, this.amountReceived, this.mobileProvider, this.paymentReference);
-                        bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+                    if (this.parent) {
+                        this.parent.processPayment(this.paymentMethod, this.amountReceived, this.mobileProvider, this.paymentReference);
+                        const modalEl = document.getElementById('paymentModal');
+                        const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                        modalInstance.hide();
                     }
                 }
             }

@@ -7,6 +7,7 @@
         body { font-family: Arial, sans-serif; font-size: 12px; color: #333; }
         .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }
         .header h2 { margin: 0; font-size: 18px; }
+        .header p { margin: 4px 0 0; color: #666; }
         table { width: 100%; border-collapse: collapse; margin: 10px 0; }
         th { background: #f5f5f5; text-align: left; padding: 6px 8px; border-bottom: 2px solid #ddd; }
         td { padding: 5px 8px; border-bottom: 1px solid #eee; }
@@ -18,21 +19,55 @@
 </head>
 <body>
     <div class="header">
-        <h2>{{ config('app.name', 'MyBar') }}</h2>
-        <p>Daily Sales Report - {{ $date->format('d M Y') }}</p>
+        <h2>{{ $company ?? config('app.name', 'MyBar') }}</h2>
+        <p>Daily Sales Report - {{ $report_date ?? ($date ? $date->format('d M Y') : '') }}</p>
     </div>
-    <p><strong>Total Sales:</strong> {{ number_format($sales, 0) }}</p>
-    <p><strong>Orders Count:</strong> {{ $ordersCount }}</p>
+
+    <table class="summary" style="width:auto;margin:0 auto 15px;">
+        <tr><td><strong>Total Sales:</strong></td><td class="text-right">UGX {{ number_format($total_sales ?? 0, 0) }}</td></tr>
+        <tr><td><strong>Orders Count:</strong></td><td class="text-right">{{ $total_transactions ?? 0 }}</td></tr>
+        <tr><td><strong>Avg per Transaction:</strong></td><td class="text-right">UGX {{ number_format($average_per_transaction ?? 0, 0) }}</td></tr>
+    </table>
+
+    @if(count($payment_methods ?? []) > 0)
     <h4>Payment Methods</h4>
     <table>
         <thead>
             <tr><th>Method</th><th class="text-right">Count</th><th class="text-right">Total</th></tr>
         </thead>
         <tbody>
-            @foreach($paymentMethods ?? [] as $pm)
-            <tr><td>{{ ucfirst($pm->payment_method) }}</td><td class="text-right">{{ $pm->count }}</td><td class="text-right">{{ number_format($pm->total, 0) }}</td></tr>
+            @foreach($payment_methods ?? [] as $pm)
+            <tr>
+                <td>{{ ucfirst($pm->payment_method) }}</td>
+                <td class="text-right">{{ $pm->count }}</td>
+                <td class="text-right">UGX {{ number_format((float) $pm->total, 0) }}</td>
+            </tr>
             @endforeach
         </tbody>
     </table>
+    @endif
+
+    @if(count($bills ?? []) > 0)
+    <h4>Transactions</h4>
+    <table>
+        <thead>
+            <tr><th>#</th><th>Invoice</th><th>Customer</th><th>Items</th><th class="text-right">Total</th><th class="text-right">Paid</th></tr>
+        </thead>
+        <tbody>
+            @foreach($bills as $i => $bill)
+            <tr>
+                <td>{{ $i + 1 }}</td>
+                <td>{{ $bill->invoice_no ?? $bill->id }}</td>
+                <td>{{ $bill->customer->name ?? 'Walk-in' }}</td>
+                <td>{{ $bill->items_count }}</td>
+                <td class="text-right">UGX {{ number_format((float) $bill->total_amount, 0) }}</td>
+                <td class="text-right">UGX {{ number_format((float) $bill->paid_amount, 0) }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+    @endif
+
+    <p style="text-align:center;color:#999;font-size:10px;margin-top:20px;">Generated on {{ $generated_at ?? now()->format('d M Y H:i') }}</p>
 </body>
 </html>

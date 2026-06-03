@@ -6,7 +6,6 @@ use App\Models\Bill;
 use App\Models\BillItem;
 use App\Models\Expense;
 use App\Models\Product;
-use App\Models\Purchase;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -14,268 +13,421 @@ use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return view('reports.index');
+        $type = $request->type;
+        $data = [];
+        $dateFrom = $request->from ? Carbon::parse($request->from) : now()->startOfMonth();
+        $dateTo = $request->to ? Carbon::parse($request->to) : now();
+        $branchId = auth()->user()->branch_id;
+
+        if ($type) {
+            switch ($type) {
+                case 'daily-sales':
+                    $data = $this->dailySalesData($dateFrom, $branchId);
+                    break;
+                case 'monthly-sales':
+                    $data = $this->monthlySalesData($dateFrom, $branchId);
+                    break;
+                case 'profit-loss':
+                    $data = $this->profitLossData($dateFrom, $dateTo, $branchId);
+                    break;
+                case 'inventory':
+                    $data = $this->inventoryData($branchId);
+                    break;
+                case 'product-performance':
+                    $data = $this->productPerformanceData($dateFrom, $dateTo, $branchId);
+                    break;
+            }
+        }
+
+        return view('reports.index', compact('type', 'data', 'dateFrom', 'dateTo'));
     }
 
-    public function dailySales(Request $request)
+    private function dailySalesData(Carbon $date, $branchId): array
     {
-        $date = $request->date ? Carbon::parse($request->date) : now();
+        $query = Bill::where('payment_status', 'paid')->whereDate('created_at', $date);
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+        }
 
-        $sales = Bill::where('payment_status', 'paid')
-            ->whereDate('created_at', $date)
-            ->sum('total_amount');
+        $totalSales = (float) $query->sum('total_amount');
+        $ordersCount = (int) $query->count();
 
-        $ordersCount = Bill::where('payment_status', 'paid')
-            ->whereDate('created_at', $date)
-            ->count();
+        $billsQuery = Bill::with(['customer', 'items'])
+            ->where('payment_status', 'paid')
+            ->whereDate('created_at', $date);
+        if ($branchId) {
+            $billsQuery->where('branch_id', $branchId);
+        }
+        $bills = $billsQuery->orderBy('created_at', 'desc')->get();
 
         $paymentMethods = Bill::where('payment_status', 'paid')
             ->whereDate('created_at', $date)
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->select('payment_method', DB::raw('COUNT(*) as count'), DB::raw('SUM(total_amount) as total'))
             ->groupBy('payment_method')
             ->get();
 
-        return view('reports.daily-sales', compact('date', 'sales', 'ordersCount', 'paymentMethods'));
+        return [
+            'total_sales' => $totalSales,
+            'total_transactions' => $ordersCount,
+            'average_per_transaction' => $ordersCount > 0 ? round($totalSales / $ordersCount) : 0,
+            'total_discounts' => 0,
+            'bills' => $bills,
+            'payment_methods' => $paymentMethods,
+            'report_date' => $date->format('d M Y'),
+        ];
     }
 
-    public function monthlySales(Request $request)
+    private function monthlySalesData(Carbon $month, $branchId): array
     {
-        $month = $request->month ? Carbon::parse($request->month) : now();
         $startOfMonth = $month->copy()->startOfMonth();
         $endOfMonth = $month->copy()->endOfMonth();
 
-        $sales = Bill::where('payment_status', 'paid')
+        $sales = (float) Bill::where('payment_status', 'paid')
             ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->sum('total_amount');
 
-        $expenses = Expense::whereBetween('expense_date', [$startOfMonth, $endOfMonth])
-            ->sum('amount');
+        $transactions = Bill::where('payment_status', 'paid')
+            ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->count();
 
         $dailyData = Bill::where('payment_status', 'paid')
             ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
-            ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(total_amount) as total'))
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(total_amount) as total_sum'))
             ->groupBy('date')
             ->orderBy('date')
             ->get();
 
-        return view('reports.monthly-sales', compact('month', 'sales', 'expenses', 'dailyData'));
+        $daysInMonth = now()->month === $month->month && now()->year === $month->year
+            ? now()->day
+            : $month->daysInMonth;
+
+        return [
+            'total_sales' => $sales,
+            'total_transactions' => $transactions,
+            'average_daily' => $daysInMonth > 0 ? round($sales / $daysInMonth) : 0,
+            'monthly_data' => $dailyData,
+            'report_month' => $month->format('F Y'),
+        ];
     }
 
-    public function profitLoss(Request $request)
+    private function profitLossData(Carbon $startDate, Carbon $endDate, $branchId): array
     {
-        $startDate = $request->from_date ? Carbon::parse($request->from_date) : now()->startOfMonth();
-        $endDate = $request->to_date ? Carbon::parse($request->to_date) : now();
+        $billQuery = Bill::where('payment_status', 'paid')
+            ->whereBetween('created_at', [$startDate, $endDate]);
+        if ($branchId) {
+            $billQuery->where('branch_id', $branchId);
+        }
+        $totalSales = (float) $billQuery->sum('total_amount');
 
-        $totalSales = Bill::where('payment_status', 'paid')
+        $expenseQuery = Expense::whereBetween('expense_date', [$startDate, $endDate]);
+        if ($branchId) {
+            $expenseQuery->where('branch_id', $branchId);
+        }
+        $totalExpenses = (float) $expenseQuery->sum('amount');
+
+        $cogsQuery = BillItem::whereHas('bill', fn ($q) => $q->where('payment_status', 'paid')
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->sum('total_amount');
+            ->when($branchId, fn ($bq) => $bq->where('branch_id', $branchId)))
+            ->sum(DB::raw('bill_items.quantity * (SELECT cost_price FROM products WHERE products.id = bill_items.product_id)'));
 
-        $totalExpenses = Expense::whereBetween('expense_date', [$startDate, $endDate])
-            ->sum('amount');
-
-        $costOfGoods = BillItem::whereHas('bill', fn ($q) => $q->where('payment_status', 'paid')
-            ->whereBetween('created_at', [$startDate, $endDate]))
-            ->join('products', 'bill_items.product_id', '=', 'products.id')
-            ->sum(DB::raw('bill_items.quantity * products.cost_price'));
-
-        $grossProfit = $totalSales - $costOfGoods;
+        $grossProfit = $totalSales - (float) $cogsQuery;
         $netProfit = $grossProfit - $totalExpenses;
 
-        return view('reports.profit-loss', compact(
-            'startDate', 'endDate', 'totalSales', 'totalExpenses',
-            'costOfGoods', 'grossProfit', 'netProfit'
-        ));
+        $expenseCategories = Expense::whereBetween('expense_date', [$startDate, $endDate])
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->select('category', DB::raw('SUM(amount) as total'))
+            ->groupBy('category')
+            ->orderByDesc('total')
+            ->get()
+            ->map(fn ($e) => ['name' => $e->category, 'total' => (float) $e->total])
+            ->toArray();
+
+        return [
+            'total_revenue' => $totalSales,
+            'total_expenses' => $totalExpenses,
+            'net_profit' => $netProfit,
+            'product_sales' => $totalSales,
+            'service_charges' => 0,
+            'product_sales_percent' => $totalSales > 0 ? 100 : 0,
+            'service_charges_percent' => 0,
+            'expense_categories' => $expenseCategories,
+            'report_period' => $startDate->format('d M Y') . ' - ' . $endDate->format('d M Y'),
+        ];
     }
 
-    public function inventory()
+    private function inventoryData($branchId): array
     {
         $products = Product::with(['category', 'unit'])
-            ->select('*', DB::raw('(current_stock * cost_price) as stock_value'))
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->orderBy('name')
             ->get();
 
-        $totalValue = $products->sum('stock_value');
+        $totalValue = $products->sum(fn ($p) => $p->current_stock * $p->cost_price);
         $lowStockCount = $products->filter(fn ($p) => $p->stock_status === 'low')->count();
         $avgCost = $products->avg('cost_price');
 
-        $data = [
+        return [
             'products' => $products,
             'total_products' => $products->count(),
             'total_value' => $totalValue,
             'low_stock' => $lowStockCount,
-            'average_cost' => $avgCost,
+            'average_cost' => round($avgCost ?: 0),
         ];
-
-        return view('reports.inventory', compact('data'));
     }
 
-    public function productPerformance(Request $request)
+    private function productPerformanceData(Carbon $startDate, Carbon $endDate, $branchId): array
     {
-        $startDate = $request->from_date ? Carbon::parse($request->from_date) : now()->startOfMonth();
-        $endDate = $request->to_date ? Carbon::parse($request->to_date) : now();
-
-        $products = BillItem::select(
-            'product_id',
-            DB::raw('SUM(quantity) as total_qty'),
-            DB::raw('SUM(subtotal) as total_revenue')
+        $items = BillItem::select(
+            'bill_items.product_id',
+            DB::raw('SUM(bill_items.quantity) as total_qty'),
+            DB::raw('SUM(bill_items.subtotal) as total_revenue'),
+            DB::raw('SUM(bill_items.quantity * (SELECT cost_price FROM products WHERE products.id = bill_items.product_id)) as total_cost')
         )
             ->whereHas('bill', fn ($q) => $q->where('payment_status', 'paid')
-                ->whereBetween('created_at', [$startDate, $endDate]))
-            ->with('product')
-            ->groupBy('product_id')
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->when($branchId, fn ($bq) => $bq->where('branch_id', $branchId)))
+            ->with('product.category', 'product.unit')
+            ->groupBy('bill_items.product_id')
             ->orderByDesc('total_qty')
             ->get();
 
-        return view('reports.product-performance', compact('products', 'startDate', 'endDate'));
+        $items->each(function ($item) {
+            $cost = (float) ($item->total_cost ?? 0);
+            $revenue = (float) ($item->total_revenue ?? 0);
+            $item->total_cost = $cost;
+            $item->total_profit = $revenue - $cost;
+            $item->margin = $revenue > 0 ? round(($revenue - $cost) / $revenue * 100, 1) : 0;
+        });
+
+        return [
+            'products' => $items,
+            'report_period' => $startDate->format('d M Y') . ' - ' . $endDate->format('d M Y'),
+        ];
     }
 
     public function exportPdf(Request $request)
     {
-        $type = $request->type ?? 'daily';
+        $type = $request->type ?? 'daily-sales';
+        $branchId = auth()->user()->branch_id;
         $data = [];
         $view = '';
 
-        switch ($type) {
+        $dateFrom = $request->from ? Carbon::parse($request->from) : now()->startOfMonth();
+        $dateTo = $request->to ? Carbon::parse($request->to) : now();
+
+        $typeMap = [
+            'daily-sales' => 'daily',
+            'monthly-sales' => 'monthly',
+            'profit-loss' => 'profit-loss',
+            'inventory' => 'inventory',
+            'product-performance' => 'product-performance',
+        ];
+
+        $pdfType = $typeMap[$type] ?? null;
+        if (!$pdfType) {
+            return back()->with('error', 'Invalid report type.');
+        }
+
+        switch ($pdfType) {
             case 'daily':
-                $date = $request->date ? Carbon::parse($request->date) : now();
-                $data['date'] = $date;
-                $data['sales'] = Bill::where('payment_status', 'paid')->whereDate('created_at', $date)->sum('total_amount');
-                $data['ordersCount'] = Bill::where('payment_status', 'paid')->whereDate('created_at', $date)->count();
+                $data = $this->dailySalesData($dateFrom, $branchId);
+                $data['date'] = $dateFrom;
                 $view = 'reports.pdf.daily-sales';
                 break;
 
             case 'monthly':
-                $month = $request->month ? Carbon::parse($request->month) : now();
-                $data['month'] = $month;
-                $data['sales'] = Bill::where('payment_status', 'paid')
-                    ->whereBetween('created_at', [$month->copy()->startOfMonth(), $month->copy()->endOfMonth()])
+                $data['month'] = $dateFrom;
+                $data['sales'] = (float) Bill::where('payment_status', 'paid')
+                    ->whereBetween('created_at', [$dateFrom->copy()->startOfMonth(), $dateFrom->copy()->endOfMonth()])
+                    ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                     ->sum('total_amount');
-                $data['expenses'] = Expense::whereBetween('expense_date', [$month->copy()->startOfMonth(), $month->copy()->endOfMonth()])
+                $data['expenses'] = (float) Expense::whereBetween('expense_date', [$dateFrom->copy()->startOfMonth(), $dateFrom->copy()->endOfMonth()])
+                    ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                     ->sum('amount');
+                $data['dailyData'] = Bill::where('payment_status', 'paid')
+                    ->whereBetween('created_at', [$dateFrom->copy()->startOfMonth(), $dateFrom->copy()->endOfMonth()])
+                    ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+                    ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(total_amount) as total_sum'))
+                    ->groupBy('date')->orderBy('date')->get();
                 $view = 'reports.pdf.monthly-sales';
                 break;
 
+            case 'profit-loss':
+                $data = $this->profitLossData($dateFrom, $dateTo, $branchId);
+                $view = 'reports.pdf.profit-loss';
+                break;
+
             case 'inventory':
-                $data['products'] = Product::with('category')->orderBy('name')->get();
+                $data['products'] = Product::with('category')
+                    ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+                    ->orderBy('name')->get();
                 $view = 'reports.pdf.inventory';
                 break;
 
-            default:
-                return back()->with('error', 'Invalid report type.');
+            case 'product-performance':
+                $data = $this->productPerformanceData($dateFrom, $dateTo, $branchId);
+                $view = 'reports.pdf.product-performance';
+                break;
         }
 
+        $data['company'] = config('app.name', 'MyBar');
+        $data['generated_at'] = now()->format('d M Y H:i');
+
         $pdf = Pdf::loadView($view, $data);
-        return $pdf->download("{$type}-report.pdf");
+        $filename = str_replace('_', '-', $type) . '-report-' . now()->format('Ymd') . '.pdf';
+        return $pdf->download($filename);
     }
 
     public function exportExcel(Request $request)
     {
-        $type = $request->report_type ?? 'daily_sales';
-        $dateFrom = $request->date_from ? Carbon::parse($request->date_from) : now()->startOfMonth();
-        $dateTo = $request->date_to ? Carbon::parse($request->date_to) : now();
+        $type = $request->type ?? 'daily-sales';
+        $branchId = auth()->user()->branch_id;
+        $dateFrom = $request->from ? Carbon::parse($request->from) : now()->startOfMonth();
+        $dateTo = $request->to ? Carbon::parse($request->to) : now();
 
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $type . '-report.csv"',
+        $typeMap = [
+            'daily-sales' => 'daily_sales',
+            'monthly-sales' => 'monthly_sales',
+            'profit-loss' => 'profit_loss',
+            'inventory' => 'inventory',
+            'product-performance' => 'products',
         ];
 
-        $callback = function () use ($type, $dateFrom, $dateTo) {
-            $handle = fopen('php://output', 'w');
+        $csvType = $typeMap[$type] ?? null;
+        if (!$csvType) {
+            return back()->with('error', 'Invalid report type.');
+        }
 
+        $filename = str_replace('_', '-', $type) . '-report-' . now()->format('Ymd') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function () use ($csvType, $dateFrom, $dateTo, $branchId) {
+            $handle = fopen('php://output', 'w');
             fwrite($handle, "\xEF\xBB\xBF");
 
-            switch ($type) {
+            switch ($csvType) {
                 case 'daily_sales':
-                    fputcsv($handle, ['Date', 'Total Sales', 'Orders Count', 'Payment Method', 'Method Count', 'Method Total']);
-                    $sales = Bill::where('payment_status', 'paid')
-                        ->whereDate('created_at', $dateFrom)
-                        ->sum('total_amount');
-                    $ordersCount = Bill::where('payment_status', 'paid')
-                        ->whereDate('created_at', $dateFrom)
-                        ->count();
-                    $paymentMethods = Bill::where('payment_status', 'paid')
-                        ->whereDate('created_at', $dateFrom)
-                        ->select('payment_method', DB::raw('COUNT(*) as count'), DB::raw('SUM(total_amount) as total'))
-                        ->groupBy('payment_method')
-                        ->get();
-                    foreach ($paymentMethods as $pm) {
-                        fputcsv($handle, [$dateFrom->format('Y-m-d'), $sales, $ordersCount, $pm->payment_method, $pm->count, $pm->total]);
+                    fputcsv($handle, ['Daily Sales Report', $dateFrom->format('d M Y')]);
+                    fputcsv($handle, []);
+                    fputcsv($handle, ['Date', 'Invoice #', 'Customer', 'Items', 'Total', 'Paid']);
+                    $bills = Bill::with('customer')
+                        ->where('payment_status', 'paid')->whereDate('created_at', $dateFrom)
+                        ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+                        ->orderBy('created_at', 'desc')->get();
+                    foreach ($bills as $b) {
+                        fputcsv($handle, [
+                            $b->created_at->format('d M Y'),
+                            $b->invoice_no ?? $b->id,
+                            $b->customer->name ?? 'Walk-in',
+                            $b->items_count,
+                            number_format((float) $b->total_amount, 0),
+                            number_format((float) $b->paid_amount, 0),
+                        ]);
                     }
+                    fputcsv($handle, []);
+                    fputcsv($handle, ['TOTAL SALES', '', '', '', number_format($bills->sum('total_amount'), 0), '']);
+                    fputcsv($handle, ['TOTAL TRANSACTIONS', $bills->count()]);
                     break;
 
                 case 'monthly_sales':
-                    fputcsv($handle, ['Date', 'Daily Sales', 'Expenses']);
+                    $month = $dateFrom;
+                    fputcsv($handle, ['Monthly Sales Report', $month->format('F Y')]);
+                    fputcsv($handle, []);
+                    fputcsv($handle, ['Date', 'Sales']);
                     $dailyData = Bill::where('payment_status', 'paid')
-                        ->whereBetween('created_at', [$dateFrom, $dateTo])
-                        ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(total_amount) as total'))
-                        ->groupBy('date')
-                        ->orderBy('date')
-                        ->get();
-                    $totalExpenses = Expense::whereBetween('expense_date', [$dateFrom, $dateTo])->sum('amount');
+                        ->whereBetween('created_at', [$month->copy()->startOfMonth(), $month->copy()->endOfMonth()])
+                        ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+                        ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(total_amount) as total_sum'))
+                        ->groupBy('date')->orderBy('date')->get();
                     foreach ($dailyData as $d) {
-                        fputcsv($handle, [$d->date, $d->total, $totalExpenses]);
+                        fputcsv($handle, [$d->date, number_format((float) ($d->total_sum ?? $d->total ?? 0), 0)]);
                     }
-                    fputcsv($handle, ['TOTAL', $dailyData->sum('total'), $totalExpenses]);
+                    fputcsv($handle, ['TOTAL', number_format($dailyData->sum(fn($r) => $r->total_sum ?? $r->total ?? 0), 0)]);
                     break;
 
                 case 'profit_loss':
-                    fputcsv($handle, ['Metric', 'Value']);
-                    $totalSales = Bill::where('payment_status', 'paid')
+                    fputcsv($handle, ['Profit & Loss Report', $dateFrom->format('d M Y') . ' - ' . $dateTo->format('d M Y')]);
+                    fputcsv($handle, []);
+                    $totalSales = (float) Bill::where('payment_status', 'paid')
                         ->whereBetween('created_at', [$dateFrom, $dateTo])
+                        ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                         ->sum('total_amount');
-                    $totalExpenses = Expense::whereBetween('expense_date', [$dateFrom, $dateTo])->sum('amount');
-                    $costOfGoods = BillItem::whereHas('bill', fn ($q) => $q->where('payment_status', 'paid')
-                        ->whereBetween('created_at', [$dateFrom, $dateTo]))
-                        ->join('products', 'bill_items.product_id', '=', 'products.id')
-                        ->sum(DB::raw('bill_items.quantity * products.cost_price'));
-                    $grossProfit = $totalSales - $costOfGoods;
-                    $netProfit = $grossProfit - $totalExpenses;
-                    fputcsv($handle, ['Period', $dateFrom->format('Y-m-d') . ' to ' . $dateTo->format('Y-m-d')]);
-                    fputcsv($handle, ['Total Sales', $totalSales]);
-                    fputcsv($handle, ['Cost of Goods Sold', $costOfGoods]);
-                    fputcsv($handle, ['Gross Profit', $grossProfit]);
-                    fputcsv($handle, ['Total Expenses', $totalExpenses]);
-                    fputcsv($handle, ['Net Profit', $netProfit]);
+                    $totalExpenses = (float) Expense::whereBetween('expense_date', [$dateFrom, $dateTo])
+                        ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+                        ->sum('amount');
+                    $costOfGoods = (float) BillItem::whereHas('bill', fn ($q) => $q->where('payment_status', 'paid')
+                        ->whereBetween('created_at', [$dateFrom, $dateTo])
+                        ->when($branchId, fn ($bq) => $bq->where('branch_id', $branchId)))
+                        ->sum(DB::raw('bill_items.quantity * (SELECT cost_price FROM products WHERE products.id = bill_items.product_id)'));
+                    fputcsv($handle, ['Total Sales', number_format($totalSales, 0)]);
+                    fputcsv($handle, ['Cost of Goods Sold', number_format($costOfGoods, 0)]);
+                    fputcsv($handle, ['Gross Profit', number_format($totalSales - $costOfGoods, 0)]);
+                    fputcsv($handle, ['Total Expenses', number_format($totalExpenses, 0)]);
+                    fputcsv($handle, ['Net Profit', number_format($totalSales - $costOfGoods - $totalExpenses, 0)]);
                     break;
 
                 case 'inventory':
-                    fputcsv($handle, ['Product', 'Category', 'Current Stock', 'Reorder Level', 'Cost Price', 'Stock Value']);
+                    fputcsv($handle, ['Inventory Report', now()->format('d M Y')]);
+                    fputcsv($handle, []);
+                    fputcsv($handle, ['Product', 'Category', 'Stock', 'Reorder Level', 'Cost Price', 'Selling Price', 'Stock Value', 'Status']);
                     $products = Product::with('category')
-                        ->select('*', DB::raw('(current_stock * cost_price) as stock_value'))
-                        ->orderBy('name')
-                        ->get();
+                        ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+                        ->orderBy('name')->get();
                     foreach ($products as $p) {
                         fputcsv($handle, [
                             $p->name,
                             $p->category->name ?? 'N/A',
                             $p->current_stock,
                             $p->reorder_level,
-                            $p->cost_price,
-                            $p->stock_value,
+                            number_format((float) $p->cost_price, 0),
+                            number_format((float) $p->selling_price, 0),
+                            number_format((float) $p->current_stock * (float) $p->cost_price, 0),
+                            ucfirst($p->stock_status ?? 'unknown'),
                         ]);
                     }
+                    fputcsv($handle, []);
+                    fputcsv($handle, ['TOTAL PRODUCTS', $products->count()]);
+                    fputcsv($handle, ['TOTAL STOCK VALUE', number_format($products->sum(fn ($p) => (float) $p->current_stock * (float) $p->cost_price), 0)]);
                     break;
 
                 case 'products':
-                    fputcsv($handle, ['Product', 'Quantity Sold', 'Total Revenue']);
-                    $products = BillItem::select(
-                        'product_id',
-                        DB::raw('SUM(quantity) as total_qty'),
-                        DB::raw('SUM(subtotal) as total_revenue')
+                    fputcsv($handle, ['Product Performance Report', $dateFrom->format('d M Y') . ' - ' . $dateTo->format('d M Y')]);
+                    fputcsv($handle, []);
+                    fputcsv($handle, ['Product', 'Qty Sold', 'Revenue', 'Cost', 'Profit', 'Margin (%)']);
+                    $items = BillItem::select(
+                        'bill_items.product_id',
+                        DB::raw('SUM(bill_items.quantity) as total_qty'),
+                        DB::raw('SUM(bill_items.subtotal) as total_revenue'),
+                        DB::raw('SUM(bill_items.quantity * (SELECT cost_price FROM products WHERE products.id = bill_items.product_id)) as total_cost')
                     )
                         ->whereHas('bill', fn ($q) => $q->where('payment_status', 'paid')
-                            ->whereBetween('created_at', [$dateFrom, $dateTo]))
-                        ->with('product')
-                        ->groupBy('product_id')
+                            ->whereBetween('created_at', [$dateFrom, $dateTo])
+                            ->when($branchId, fn ($bq) => $bq->where('branch_id', $branchId)))
+                        ->groupBy('bill_items.product_id')
                         ->orderByDesc('total_qty')
                         ->get();
-                    foreach ($products as $p) {
+                    foreach ($items as $item) {
+                        $revenue = (float) $item->total_revenue;
+                        $cost = (float) $item->total_cost;
+                        $profit = $revenue - $cost;
+                        $margin = $revenue > 0 ? round($profit / $revenue * 100, 1) : 0;
+                        $product = \App\Models\Product::find($item->product_id);
                         fputcsv($handle, [
-                            $p->product->name ?? 'Unknown',
-                            $p->total_qty,
-                            $p->total_revenue,
+                            $product->name ?? 'Unknown',
+                            (int) $item->total_qty,
+                            number_format($revenue, 0),
+                            number_format($cost, 0),
+                            number_format($profit, 0),
+                            $margin,
                         ]);
                     }
                     break;

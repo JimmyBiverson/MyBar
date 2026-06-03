@@ -1,49 +1,74 @@
-<div class="card">
-    <div class="card-header"><i class="fas fa-sun me-2"></i>Daily Sales Report</div>
+<div class="card report-card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-sun me-2"></i>Daily Sales Report</span>
+        <small class="text-muted">{{ $data['report_date'] ?? '' }}</small>
+    </div>
     <div class="card-body">
         <div class="row g-3 mb-3">
-            <div class="col-md-3">
-                <div class="border rounded p-3 text-center">
+            <div class="col-md-3 col-6">
+                <div class="stat-box text-center">
                     <small class="text-muted">Total Sales</small>
                     <h4 class="mb-0 text-primary">{{ number_format($data['total_sales'] ?? 0) }}</h4>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="border rounded p-3 text-center">
+            <div class="col-md-3 col-6">
+                <div class="stat-box text-center">
                     <small class="text-muted">Transactions</small>
                     <h4 class="mb-0">{{ $data['total_transactions'] ?? 0 }}</h4>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="border rounded p-3 text-center">
+            <div class="col-md-3 col-6">
+                <div class="stat-box text-center">
                     <small class="text-muted">Avg. Per Transaction</small>
                     <h4 class="mb-0 text-success">{{ number_format($data['average_per_transaction'] ?? 0) }}</h4>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="border rounded p-3 text-center">
-                    <small class="text-muted">Total Discounts</small>
-                    <h4 class="mb-0 text-danger">{{ number_format($data['total_discounts'] ?? 0) }}</h4>
+            <div class="col-md-3 col-6">
+                <div class="stat-box text-center">
+                    <small class="text-muted">Payment Methods</small>
+                    <h4 class="mb-0 text-info">{{ count($data['payment_methods'] ?? []) }}</h4>
                 </div>
             </div>
         </div>
+
+        @if(count($data['payment_methods'] ?? []) > 0)
+        <div class="row g-2 mb-3">
+            @foreach($data['payment_methods'] as $pm)
+            <div class="col-md-3 col-6">
+                <div class="border rounded p-2 text-center">
+                    <small class="text-muted">{{ ucfirst($pm->payment_method) }}</small>
+                    <h5 class="mb-0">{{ number_format((float) $pm->total, 0) }}</h5>
+                    <small class="text-muted">{{ $pm->count }} transactions</small>
+                </div>
+            </div>
+            @endforeach
+        </div>
+        @endif
+
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover table-sm">
                 <thead class="table-light">
-                    <tr><th>Date</th><th>Invoice #</th><th>Customer</th><th>Items</th><th class="text-end">Total</th><th class="text-end">Payment</th></tr>
+                    <tr>
+                        <th>#</th>
+                        <th>Invoice</th>
+                        <th>Customer</th>
+                        <th>Items</th>
+                        <th class="text-end">Total</th>
+                        <th class="text-end">Paid</th>
+                    </tr>
                 </thead>
                 <tbody>
-                    @forelse($data['bills'] ?? [] as $bill)
+                    @forelse($data['bills'] ?? [] as $i => $bill)
                     <tr>
-                        <td>{{ $bill->created_at->format('d M Y') }}</td>
+                        <td>{{ $i + 1 }}</td>
                         <td>#{{ $bill->invoice_no ?? $bill->id }}</td>
                         <td>{{ $bill->customer->name ?? 'Walk-in' }}</td>
-                        <td>{{ $bill->items->count() }}</td>
-                        <td class="text-end">{{ number_format($bill->total, 0) }}</td>
-                        <td class="text-end">{{ number_format($bill->paid, 0) }}</td>
+                        <td>{{ $bill->items_count }}</td>
+                        <td class="text-end">{{ number_format((float) $bill->total_amount, 0) }}</td>
+                        <td class="text-end">{{ number_format((float) $bill->paid_amount, 0) }}</td>
                     </tr>
                     @empty
-                    <tr><td colspan="6" class="text-center py-3 text-muted">No data</td></tr>
+                    <tr><td colspan="6" class="text-center py-3 text-muted">No transactions found</td></tr>
                     @endforelse
                 </tbody>
             </table>
