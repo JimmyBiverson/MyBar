@@ -7,7 +7,6 @@ use App\Models\BillItem;
 use App\Models\Expense;
 use App\Models\Product;
 use App\Models\Order;
-use App\Models\OrderItem;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,17 +14,10 @@ use Illuminate\Support\Facades\Hash;
 
 class DashboardController extends Controller
 {
-    private function salesQuery($branchId, $dateField = 'created_at')
+    private function paidBillsQuery($branchId)
     {
-        $paidBills = Bill::where('payment_status', 'paid')
+        return Bill::where('payment_status', 'paid')
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId));
-
-        $orderTotalSub = Order::whereIn('orders.status', ['confirmed', 'preparing', 'ready', 'served', 'completed'])
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-            ->join('order_items', 'orders.id', '=', 'order_items.order_id')
-            ->select(DB::raw('COALESCE(SUM(order_items.subtotal), 0) as total'));
-
-        return [$paidBills, $orderTotalSub];
     }
 
     public function index()
@@ -34,60 +26,29 @@ class DashboardController extends Controller
         $today = now()->toDateString();
         $startOfMonth = now()->startOfMonth()->toDateString();
 
-        $todayFromBills = (clone $this->salesQuery($branchId)[0])
+        $todaySales = (clone $this->paidBillsQuery($branchId))
             ->whereDate('created_at', $today)
             ->sum('total_amount');
 
-        $todayFromOrders = Order::whereIn('orders.status', ['confirmed', 'preparing', 'ready', 'served', 'completed'])
-            ->whereDate('orders.created_at', $today)
-            ->when($branchId, fn ($q) => $q->where('orders.branch_id', $branchId))
-            ->join('order_items', 'orders.id', '=', 'order_items.order_id')
-            ->sum('order_items.subtotal');
-        $todaySales = $todayFromBills + $todayFromOrders;
-
-        $monthlyFromBills = (clone $this->salesQuery($branchId)[0])
+        $monthlySales = (clone $this->paidBillsQuery($branchId))
             ->whereDate('created_at', '>=', $startOfMonth)
             ->sum('total_amount');
 
-        $monthlyFromOrders = Order::whereIn('orders.status', ['confirmed', 'preparing', 'ready', 'served', 'completed'])
-            ->whereDate('orders.created_at', '>=', $startOfMonth)
-            ->when($branchId, fn ($q) => $q->where('orders.branch_id', $branchId))
-            ->join('order_items', 'orders.id', '=', 'order_items.order_id')
-            ->sum('order_items.subtotal');
-        $monthlySales = $monthlyFromBills + $monthlyFromOrders;
+        $totalSales = (clone $this->paidBillsQuery($branchId))->sum('total_amount');
 
-        $totalSales = (clone $this->salesQuery($branchId)[0])->sum('total_amount')
-            + Order::whereIn('orders.status', ['confirmed', 'preparing', 'ready', 'served', 'completed'])
-                ->when($branchId, fn ($q) => $q->where('orders.branch_id', $branchId))
-                ->join('order_items', 'orders.id', '=', 'order_items.order_id')
-                ->sum('order_items.subtotal');
-
-        $yesterdayFromBills = (clone $this->salesQuery($branchId)[0])
+        $yesterdaySales = (clone $this->paidBillsQuery($branchId))
             ->whereDate('created_at', now()->subDay()->toDateString())
             ->sum('total_amount');
-        $yesterdayFromOrders = Order::whereIn('orders.status', ['confirmed', 'preparing', 'ready', 'served', 'completed'])
-            ->whereDate('orders.created_at', now()->subDay()->toDateString())
-            ->when($branchId, fn ($q) => $q->where('orders.branch_id', $branchId))
-            ->join('order_items', 'orders.id', '=', 'order_items.order_id')
-            ->sum('order_items.subtotal');
-        $yesterdaySales = $yesterdayFromBills + $yesterdayFromOrders;
         $todaySalesPercent = $yesterdaySales > 0
             ? round(($todaySales - $yesterdaySales) / $yesterdaySales * 100, 1)
             : ($todaySales > 0 ? 100 : 0);
 
         $lastMonthStart = now()->subMonth()->startOfMonth()->toDateString();
         $lastMonthEnd = now()->subMonth()->endOfMonth()->toDateString();
-        $lastMonthFromBills = (clone $this->salesQuery($branchId)[0])
+        $lastMonthSales = (clone $this->paidBillsQuery($branchId))
             ->whereDate('created_at', '>=', $lastMonthStart)
             ->whereDate('created_at', '<=', $lastMonthEnd)
             ->sum('total_amount');
-        $lastMonthFromOrders = Order::whereIn('orders.status', ['confirmed', 'preparing', 'ready', 'served', 'completed'])
-            ->whereDate('orders.created_at', '>=', $lastMonthStart)
-            ->whereDate('orders.created_at', '<=', $lastMonthEnd)
-            ->when($branchId, fn ($q) => $q->where('orders.branch_id', $branchId))
-            ->join('order_items', 'orders.id', '=', 'order_items.order_id')
-            ->sum('order_items.subtotal');
-        $lastMonthSales = $lastMonthFromBills + $lastMonthFromOrders;
         $monthlySalesPercent = $lastMonthSales > 0
             ? round(($monthlySales - $lastMonthSales) / $lastMonthSales * 100, 1)
             : ($monthlySales > 0 ? 100 : 0);
@@ -145,19 +106,9 @@ class DashboardController extends Controller
             ->get();
 
         $chartDays = 30;
-        $chartRaw = [];
-        $billChartRaw = (clone $this->salesQuery($branchId)[0])
+        $billChartRaw = (clone $this->paidBillsQuery($branchId))
             ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(total_amount) as total'))
             ->whereDate('created_at', '>=', now()->subDays($chartDays))
-            ->groupBy('date')
-            ->orderBy('date')
-            ->pluck('total', 'date');
-
-        $orderChartRaw = Order::whereIn('orders.status', ['confirmed', 'preparing', 'ready', 'served', 'completed'])
-            ->whereDate('orders.created_at', '>=', now()->subDays($chartDays))
-            ->when($branchId, fn ($q) => $q->where('orders.branch_id', $branchId))
-            ->join('order_items', 'orders.id', '=', 'order_items.order_id')
-            ->select(DB::raw('DATE(orders.created_at) as date'), DB::raw('SUM(order_items.subtotal) as total'))
             ->groupBy('date')
             ->orderBy('date')
             ->pluck('total', 'date');
@@ -165,11 +116,9 @@ class DashboardController extends Controller
         $chartData = collect();
         for ($i = $chartDays; $i >= 0; $i--) {
             $date = now()->subDays($i)->toDateString();
-            $billVal = (float) ($billChartRaw[$date] ?? 0);
-            $orderVal = (float) ($orderChartRaw[$date] ?? 0);
             $chartData->push([
                 'date' => $date,
-                'total' => $billVal + $orderVal,
+                'total' => (float) ($billChartRaw[$date] ?? 0),
             ]);
         }
         $chartLabels = $chartData->pluck('date');
@@ -238,21 +187,12 @@ class DashboardController extends Controller
             ->orderBy('date')
             ->pluck('total', 'date');
 
-        $orderRaw = Order::whereIn('orders.status', ['confirmed', 'preparing', 'ready', 'served', 'completed'])
-            ->whereDate('orders.created_at', '>=', now()->subDays($days))
-            ->when($branchId, fn ($q) => $q->where('orders.branch_id', $branchId))
-            ->join('order_items', 'orders.id', '=', 'order_items.order_id')
-            ->select(DB::raw('DATE(orders.created_at) as date'), DB::raw('SUM(order_items.subtotal) as total'))
-            ->groupBy('date')
-            ->orderBy('date')
-            ->pluck('total', 'date');
-
         $data = collect();
         for ($i = $days; $i >= 0; $i--) {
             $date = now()->subDays($i)->toDateString();
             $data->push([
                 'date' => $date,
-                'total' => ((float) ($billRaw[$date] ?? 0)) + ((float) ($orderRaw[$date] ?? 0)),
+                'total' => (float) ($billRaw[$date] ?? 0),
             ]);
         }
 

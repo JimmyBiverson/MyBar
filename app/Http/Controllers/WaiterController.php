@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\StockMovement;
 use App\Models\Table;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -349,6 +350,23 @@ class WaiterController extends Controller
                     'price' => $item->price,
                     'subtotal' => $item->subtotal,
                 ]);
+
+                $product = $item->product;
+                if ($product) {
+                    $product->decrement('current_stock', $item->quantity);
+                    $product->decrement('stock_value', $item->price * $item->quantity);
+
+                    StockMovement::create([
+                        'product_id' => $item->product_id,
+                        'quantity' => $item->quantity,
+                        'type' => 'out',
+                        'reference_type' => 'bill',
+                        'reference_id' => $bill->id,
+                        'notes' => 'Sale #' . $bill->bill_number,
+                        'created_by' => auth()->id(),
+                        'branch_id' => auth()->user()->branch_id,
+                    ]);
+                }
             }
 
             $order->update(['status' => 'completed', 'completed_at' => now()]);

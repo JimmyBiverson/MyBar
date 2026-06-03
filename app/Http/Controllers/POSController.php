@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Setting;
+use App\Models\StockMovement;
 use App\Models\Table;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -206,14 +207,26 @@ class POSController extends Controller
 
             $paidAmount = $request->amount_received ?? $request->total;
             $changeAmount = max(0, $paidAmount - $request->total);
+            $subtotal = collect($request->items)->sum(fn ($i) => $i['price'] * $i['qty']);
+            $discountValue = (float) ($request->discount ?? 0);
+            $discountType = $request->discount_type ?? 'percentage';
+            $discountAmount = $discountType === 'percentage'
+                ? $subtotal * ($discountValue / 100)
+                : $discountValue;
+            $afterDiscount = $subtotal - $discountAmount;
+            $taxAmount = $afterDiscount * ((float) ($request->tax_rate ?? 0) / 100);
+            $serviceCharge = $afterDiscount * ((float) ($request->service_charge_rate ?? 0) / 100);
 
             $bill = Bill::create([
                 'bill_number' => Bill::generateBillNumber(),
                 'order_id' => $request->order_id,
                 'customer_id' => $request->customer_id,
-                'discount_value' => $request->discount ?? 0,
-                'discount_type' => $request->discount_type ?? 'percentage',
-                'subtotal' => collect($request->items)->sum(fn ($i) => $i['price'] * $i['qty']),
+                'discount_value' => $discountValue,
+                'discount_type' => $discountType,
+                'discount_amount' => $discountAmount,
+                'subtotal' => $subtotal,
+                'tax_amount' => $taxAmount,
+                'service_charge' => $serviceCharge,
                 'total_amount' => $request->total,
                 'paid_amount' => $paidAmount,
                 'change_amount' => $changeAmount,
@@ -234,6 +247,23 @@ class POSController extends Controller
                     'price' => $item['price'],
                     'subtotal' => $item['price'] * $item['qty'],
                 ]);
+
+                $product = Product::find($item['id']);
+                if ($product) {
+                    $product->decrement('current_stock', $item['qty']);
+                    $product->decrement('stock_value', $item['price'] * $item['qty']);
+
+                    StockMovement::create([
+                        'product_id' => $item['id'],
+                        'quantity' => $item['qty'],
+                        'type' => 'out',
+                        'reference_type' => 'bill',
+                        'reference_id' => $bill->id,
+                        'notes' => 'Sale #' . $bill->bill_number,
+                        'created_by' => auth()->id(),
+                        'branch_id' => auth()->user()->branch_id,
+                    ]);
+                }
             }
 
             if ($request->order_id) {

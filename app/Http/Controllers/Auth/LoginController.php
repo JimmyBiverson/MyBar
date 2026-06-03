@@ -71,7 +71,7 @@ class LoginController extends Controller
             'Admin', 'Manager', 'Super Admin' => redirect()->route('dashboard'),
             'Cashier' => redirect()->route('pos.index'),
             'Waiter' => redirect()->route('waiter.index'),
-            'Kitchen' => redirect()->route('kitchen.index'),
+            'Kitchen Staff' => redirect()->route('kitchen.index'),
             default => redirect()->route('dashboard'),
         };
     }

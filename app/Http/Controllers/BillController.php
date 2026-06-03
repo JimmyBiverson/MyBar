@@ -33,7 +33,7 @@ class BillController extends Controller
             $query->where('branch_id', $branchId);
         }
 
-        $bills = $query->with('items')->latest()->paginate(15);
+        $bills = $query->withCount('items')->latest()->paginate(15);
 
         return view('billing.index', compact('bills'));
     }
@@ -46,7 +46,7 @@ class BillController extends Controller
 
     public function print(Bill $bill)
     {
-        $bill->load(['items.product', 'customer', 'cashier', 'order']);
+        $bill->load(['items.product', 'customer', 'waiter', 'cashier', 'order']);
         $settings = Setting::whereIn('key', [
             'tax_rate', 'service_charge_rate', 'currency_symbol',
             'currency_position', 'site_name', 'site_address', 'site_phone',
@@ -57,7 +57,7 @@ class BillController extends Controller
 
     public function receiptContent(Bill $bill)
     {
-        $bill->load(['items.product', 'customer', 'cashier', 'order']);
+        $bill->load(['items.product', 'customer', 'waiter', 'cashier', 'order']);
         $settings = Setting::whereIn('key', [
             'tax_rate', 'service_charge_rate', 'currency_symbol',
             'currency_position', 'site_name', 'site_address', 'site_phone',
@@ -69,7 +69,7 @@ class BillController extends Controller
 
     public function exportPdf(Bill $bill)
     {
-        $bill->load(['items.product', 'customer', 'cashier', 'order']);
+        $bill->load(['items.product', 'customer', 'waiter', 'cashier', 'order']);
         $settings = Setting::whereIn('key', [
             'tax_rate', 'service_charge_rate', 'currency_symbol',
             'currency_position', 'site_name', 'site_address', 'site_phone',
