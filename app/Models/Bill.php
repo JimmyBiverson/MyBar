@@ -115,7 +115,7 @@ class Bill extends Model
 
     public function getTaxAttribute()
     {
-        return $this->tax_amount;
+        return 0; // Taxes disabled — product price is the final payable amount
     }
 
     public function getInvoiceNoAttribute()

@@ -30,11 +30,12 @@ class POSController extends Controller
         $tables = Table::when($branchId, fn ($q) => $q->where('branch_id', $branchId))->get();
         $customers = Customer::when($branchId, fn ($q) => $q->where('branch_id', $branchId))->get();
 
-        $settings = Setting::whereIn('key', ['tax_rate', 'service_charge_rate', 'currency_symbol', 'currency_position'])
+        $settings = Setting::whereIn('key', ['currency_symbol', 'currency_position'])
             ->pluck('value', 'key');
 
-        $taxRate = (float) ($settings['tax_rate'] ?? 0);
-        $serviceChargeRate = (float) ($settings['service_charge_rate'] ?? 0);
+        // Taxes and service charges are disabled — product price is the total payable
+        $taxRate = 0;
+        $serviceChargeRate = 0;
 
         $preloadOrder = null;
         if ($request->filled('order_id')) {
@@ -236,8 +237,8 @@ class POSController extends Controller
                 ? $subtotal * ($discountValue / 100)
                 : $discountValue;
             $afterDiscount = $subtotal - $discountAmount;
-            $taxAmount = $afterDiscount * ((float) ($request->tax_rate ?? 0) / 100);
-            $serviceCharge = $afterDiscount * ((float) ($request->service_charge_rate ?? 0) / 100);
+            $taxAmount = 0;  // Taxes disabled — product price is the payable amount
+            $serviceCharge = 0; // Service charge disabled
 
             // Check if there is an existing unpaid bill for this order
             $bill = null;

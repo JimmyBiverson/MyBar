@@ -48,8 +48,8 @@ class BillController extends Controller
     {
         $bill->load(['items.product', 'customer', 'waiter', 'cashier', 'order']);
         $settings = Setting::whereIn('key', [
-            'tax_rate', 'service_charge_rate', 'currency_symbol',
-            'currency_position', 'site_name', 'site_address', 'site_phone',
+            'currency_symbol', 'currency_position',
+            'site_name', 'site_address', 'site_phone',
         ])->pluck('value', 'key');
 
         return view('billing.print', compact('bill', 'settings'));
@@ -59,8 +59,8 @@ class BillController extends Controller
     {
         $bill->load(['items.product', 'customer', 'waiter', 'cashier', 'order']);
         $settings = Setting::whereIn('key', [
-            'tax_rate', 'service_charge_rate', 'currency_symbol',
-            'currency_position', 'site_name', 'site_address', 'site_phone',
+            'currency_symbol', 'currency_position',
+            'site_name', 'site_address', 'site_phone',
         ])->pluck('value', 'key');
 
         $html = view('billing.receipt-partial', compact('bill', 'settings'))->render();
@@ -71,8 +71,8 @@ class BillController extends Controller
     {
         $bill->load(['items.product', 'customer', 'waiter', 'cashier', 'order']);
         $settings = Setting::whereIn('key', [
-            'tax_rate', 'service_charge_rate', 'currency_symbol',
-            'currency_position', 'site_name', 'site_address', 'site_phone',
+            'currency_symbol', 'currency_position',
+            'site_name', 'site_address', 'site_phone',
         ])->pluck('value', 'key');
 
         $pdf = Pdf::loadView('billing.pdf', compact('bill', 'settings'));

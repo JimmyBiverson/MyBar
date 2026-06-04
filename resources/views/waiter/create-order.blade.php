@@ -78,6 +78,25 @@
 @push('scripts')
 <script>
     let itemIndex = 1;
+    document.addEventListener('DOMContentLoaded', () => {
+        const cachedProducts = window.getCachedProducts();
+        if (cachedProducts && cachedProducts.length > 0) {
+            const updateSelect = (select) => {
+                const selectedVal = select.value;
+                select.innerHTML = '<option value="">Select Product</option>';
+                cachedProducts.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.id;
+                    opt.textContent = `${p.name} (${parseFloat(p.selling_price).toLocaleString()})`;
+                    if (p.id == selectedVal) opt.selected = true;
+                    select.appendChild(opt);
+                });
+            };
+            const initialSelect = document.querySelector('select[name="items[0][product_id]"]');
+            if (initialSelect) updateSelect(initialSelect);
+        }
+    });
+
     document.getElementById('addItem')?.addEventListener('click', function() {
         const tbody = document.querySelector('#itemsTable tbody');
         const row = document.querySelector('.item-row').cloneNode(true);

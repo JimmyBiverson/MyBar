@@ -147,12 +147,11 @@
             refreshTimer: null,
             soundTimer: null,
             previousOrderCount: 0,
-            init() {
-                this.fetchOrders();
-                this.refreshTimer = setInterval(() => this.fetchOrders(), 30000);
-                this.soundTimer = setInterval(() => this.checkNewOrders(), 15000);
+            async init() {
+                await this.fetchOrders();
                 this.previousOrderCount = this.orders.length;
-                this.playNotificationSound();
+                this.refreshTimer = setInterval(() => this.fetchOrders(), 10000);
+                this.soundTimer = setInterval(() => this.checkNewOrders(), 10000);
             },
             playNotificationSound() {
                 try {

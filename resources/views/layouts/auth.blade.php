@@ -4,7 +4,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title') - {{ config('app.name') }}</title>
+    <title>@yield('title') - {{ \App\Models\Setting::get('business_name', 'MyBar POS') }}</title>
+
+    @if(\App\Models\Setting::get('favicon'))
+        <link rel="icon" type="image/x-icon" href="{{ \App\Models\Setting::get('favicon') }}">
+    @else
+        <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    @endif
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,7 +25,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #7367f0 0%, #5e50ee 50%, #0dcaf0 100%);
+            background: linear-gradient(135deg, {{ \App\Models\Setting::get('accent_color', '#7367f0') }} 0%, {{ \App\Models\Setting::get('accent_color_dark', '#5e50ee') }} 50%, #0dcaf0 100%);
             padding: 1rem;
         }
         .auth-card {
@@ -37,7 +43,7 @@
         .auth-logo img { max-height: 60px; }
         .auth-logo h3 {
             font-weight: 700;
-            color: #7367f0;
+            color: {{ \App\Models\Setting::get('accent_color', '#7367f0') }};
             margin-top: 0.5rem;
         }
         .auth-logo p {
@@ -50,19 +56,19 @@
             border: 1.5px solid #e0e0e0;
         }
         .form-control:focus {
-            border-color: #7367f0;
+            border-color: {{ \App\Models\Setting::get('accent_color', '#7367f0') }};
             box-shadow: 0 0 0 3px rgba(115,103,240,0.15);
         }
         .btn-primary {
-            background: #7367f0;
+            background: {{ \App\Models\Setting::get('accent_color', '#7367f0') }};
             border: none;
             border-radius: 10px;
             padding: 0.75rem;
             font-weight: 600;
         }
-        .btn-primary:hover { background: #5e50ee; }
+        .btn-primary:hover { background: {{ \App\Models\Setting::get('accent_color_dark', '#5e50ee') }}; }
         .auth-footer { text-align: center; margin-top: 1.5rem; }
-        .auth-footer a { color: #7367f0; text-decoration: none; font-weight: 500; }
+        .auth-footer a { color: {{ \App\Models\Setting::get('accent_color', '#7367f0') }} ; text-decoration: none; font-weight: 500; }
         .auth-footer a:hover { text-decoration: underline; }
         @media (max-width: 480px) {
             .auth-card { padding: 1.5rem; }
@@ -73,8 +79,12 @@
 <body>
     <div class="auth-card">
         <div class="auth-logo">
-            <i class="fas fa-glass-cheers fa-3x" style="color:#7367f0;"></i>
-            <h3>{{ config('app.name', 'MyBar') }}</h3>
+            @if(\App\Models\Setting::get('site_logo'))
+                <img src="{{ \App\Models\Setting::get('site_logo') }}" alt="logo" class="mb-2" style="max-height: 60px; object-fit: contain;">
+            @else
+                <i class="fas fa-glass-cheers fa-3x" style="color:{{ \App\Models\Setting::get('accent_color', '#7367f0') }};"></i>
+            @endif
+            <h3>{{ \App\Models\Setting::get('business_name', 'MyBar') }}</h3>
             <p>Point of Sale System</p>
         </div>
         @yield('content')

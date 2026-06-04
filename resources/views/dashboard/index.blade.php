@@ -360,7 +360,7 @@
                 const has = raw.length > 0;
                 const labels = has ? raw.map(p => (p.payment_method||'N/A').replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())) : ['No Payments Today'];
                 const values = has ? raw.map(p => Number(p.total)) : [1];
-                const colors = has ? ['#7367f0','#28c76f','#ff9f43','#ea5455','#00cfe8','#fd7e14'] : ['#e0e0e0'];
+                const colors = has ? ['{{ \App\Models\Setting::get('accent_color', '#7367f0') }}','#28c76f','#ff9f43','#ea5455','#00cfe8','#fd7e14'] : ['#e0e0e0'];
                 const total = has ? values.reduce((a,b)=>a+b,0) : 0;
                 const self = this;
                 try {
@@ -418,7 +418,7 @@
                 if (this.categoryChart) { this.categoryChart.destroy(); this.categoryChart = null; }
                 const raw = @json($categorySales ?? []);
                 const has = raw.length > 0;
-                const palette = ['#7367f0','#28c76f','#ff9f43','#ea5455','#00cfe8','#a8aaaf','#ffd166'];
+                const palette = ['{{ \App\Models\Setting::get('accent_color', '#7367f0') }}','#28c76f','#ff9f43','#ea5455','#00cfe8','#a8aaaf','#ffd166'];
                 const labels = has ? raw.map(c => c.category||'Unknown') : ['No Sales This Month'];
                 const values = has ? raw.map(c => Number(c.total)) : [1];
                 const total = has ? values.reduce((a,b)=>a+b,0) : 0;
@@ -460,7 +460,7 @@
                             datasets: [{
                                 label: 'Sales (UGX)',
                                 data: nums,
-                                backgroundColor: '#7367f0',
+                                backgroundColor: '{{ \App\Models\Setting::get('accent_color', '#7367f0') }}',
                                 borderRadius: 4,
                                 borderSkipped: false
                             }]
@@ -472,7 +472,7 @@
                                 tooltip: { callbacks: { label: c => ' ' + self.formatCurrency(c.parsed.y) } },
                                 datalabels: {
                                     display: c => !allZero && nums[c.dataIndex] > 0,
-                                    color: '#7367f0', anchor: 'end', align: 'top', offset: 4,
+                                    color: '{{ \App\Models\Setting::get('accent_color', '#7367f0') }}', anchor: 'end', align: 'top', offset: 4,
                                     font: { weight: 'bold', size: 9 },
                                     formatter: v => self.abbreviate(v)
                                 }

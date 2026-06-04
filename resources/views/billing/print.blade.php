@@ -56,9 +56,7 @@
         @if($bill->discount > 0)
         <tr><td>Discount</td><td class="right">-{{ number_format($bill->discount, 0) }}</td></tr>
         @endif
-        @if($bill->tax > 0)
-        <tr><td>Tax</td><td class="right">{{ number_format($bill->tax, 0) }}</td></tr>
-        @endif
+
         @if($bill->service_charge > 0)
         <tr><td>Service Charge</td><td class="right">{{ number_format($bill->service_charge, 0) }}</td></tr>
         @endif

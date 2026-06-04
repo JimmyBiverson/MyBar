@@ -143,13 +143,12 @@
                 <div class="card-header">Billing Settings</div>
                 <div class="card-body">
                     <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label">Tax Rate (%)</label>
-                            <input type="number" step="0.01" class="form-control" name="tax_rate" value="{{ old('tax_rate', $settings['tax_rate'] ?? 0) }}" min="0" max="100">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Service Charge (%)</label>
-                            <input type="number" step="0.01" class="form-control" name="service_charge_rate" value="{{ old('service_charge_rate', $settings['service_charge_rate'] ?? 0) }}" min="0" max="100">
+                        <div class="col-12">
+                            <div class="alert alert-info py-2 mb-0" role="alert">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Taxes & Service Charges are disabled.</strong>
+                                Product prices are the final payable amounts — no additional taxes or fees are applied at checkout.
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Default Payment Method</label>

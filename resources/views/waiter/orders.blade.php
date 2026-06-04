@@ -307,6 +307,34 @@
             addItem() { this.newOrder.items.push({ product_id: '', qty: 1 }); },
             removeItem(i) { if (this.newOrder.items.length > 1) this.newOrder.items.splice(i, 1); },
             async submitOrder() {
+                const orderData = {
+                    table_id: this.newOrder.table_id,
+                    notes: this.newOrder.notes,
+                    customer_name: this.newOrder.customer_name,
+                    items: this.newOrder.items.map(i => ({
+                        product_id: i.product_id,
+                        qty: parseInt(i.qty),
+                        notes: ''
+                    }))
+                };
+
+                if (!navigator.onLine) {
+                    window.OfflineSyncManager.saveTransaction({
+                        type: 'order',
+                        data: orderData,
+                        timestamp: new Date().getTime()
+                    });
+
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Offline Order Placed',
+                        text: 'Order stored locally and will sync when internet is back.',
+                    });
+
+                    this.newOrder = { table_id: '', customer_name: '', items: [{ product_id: '', qty: 1 }], notes: '' };
+                    return;
+                }
+
                 try {
                     const resp = await fetch('{{ route('waiter.orders.store') }}', {
                         method: 'POST',
@@ -369,17 +397,47 @@
             },
             async submitPayment() {
                 if (!this.paymentOrderId || this.amountReceived < this.paymentTotal) return;
+
+                const paymentData = {
+                    order_id: this.paymentOrderId,
+                    payment_method: this.paymentMethod,
+                    mobile_provider: this.paymentMethod === 'mobile_money' ? this.mobileProvider : null,
+                    reference_number: this.paymentMethod === 'mobile_money' ? this.paymentReference : null,
+                    amount_received: this.amountReceived
+                };
+
+                if (!navigator.onLine) {
+                    const tempReceiptNo = 'OFF-' + new Date().getTime().toString().substr(-6);
+                    window.OfflineSyncManager.saveTransaction({
+                        type: 'payment',
+                        data: paymentData,
+                        timestamp: new Date().getTime()
+                    });
+
+                    const modalEl = document.getElementById('paymentModal');
+                    if (modalEl) {
+                        const paymentModal = bootstrap.Modal.getInstance(modalEl);
+                        if (paymentModal) paymentModal.hide();
+                    }
+
+                    this.paymentOrderId = null;
+                    this.paymentTotal = 0;
+
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Offline Payment Successful',
+                        text: `Receipt #${tempReceiptNo} generated. Action will sync when online.`,
+                    });
+                    
+                    this.fetchOrders();
+                    return;
+                }
+
                 try {
                     const resp = await fetch('{{ route('waiter.orders.pay') }}', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                        body: JSON.stringify({
-                            order_id: this.paymentOrderId,
-                            payment_method: this.paymentMethod,
-                            mobile_provider: this.paymentMethod === 'mobile_money' ? this.mobileProvider : null,
-                            reference_number: this.paymentMethod === 'mobile_money' ? this.paymentReference : null,
-                            amount_received: this.amountReceived
-                        })
+                        body: JSON.stringify(paymentData)
                     });
                     const data = await resp.json();
                     if (data.success) {

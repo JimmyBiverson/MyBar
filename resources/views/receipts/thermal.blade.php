@@ -40,7 +40,6 @@
         <h3>{{ config('app.name', 'MyBar') }}</h3>
         <p>{{ $business_address ?? 'Kampala, Uganda' }}</p>
         <p>Tel: {{ $business_phone ?? 'N/A' }}</p>
-        <p>VAT: {{ $business_tin ?? 'N/A' }}</p>
         <div class="divider"></div>
         <p><strong>INVOICE #{{ $bill->invoice_no ?? $bill->id }}</strong></p>
         <p>Date: {{ $bill->created_at->format('d M Y H:i') }}</p>
@@ -75,9 +74,7 @@
         @if($bill->discount > 0)
         <tr><td>Discount</td><td class="right">-{{ number_format($bill->discount, 0) }}</td></tr>
         @endif
-        @if($bill->tax > 0)
-        <tr><td>Tax ({{ $bill->tax_rate ?? 0 }}%)</td><td class="right">{{ number_format($bill->tax, 0) }}</td></tr>
-        @endif
+
         @if($bill->service_charge > 0)
         <tr><td>Service Charge</td><td class="right">{{ number_format($bill->service_charge, 0) }}</td></tr>
         @endif

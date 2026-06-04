@@ -224,8 +224,8 @@
             orderItemStatuses: {},
             unavailableItem: null,
             unavailableReason: '',
-            taxRate: {{ $taxRate ?? 0 }},
-            serviceChargeRate: {{ $serviceChargeRate ?? 0 }},
+            taxRate: 0,
+            serviceChargeRate: 0,
             filteredProducts: [],
             previousOrderCount: 0,
             newOrderAlert: false,
@@ -322,13 +322,13 @@
                     : this.discount;
             },
             get tax() {
-                return (this.subtotal - this.discountAmount) * (this.taxRate / 100);
+                return 0; // Taxes disabled
             },
             get serviceCharge() {
-                return (this.subtotal - this.discountAmount) * (this.serviceChargeRate / 100);
+                return 0; // Service charge disabled
             },
             get total() {
-                return this.subtotal - this.discountAmount + this.tax + this.serviceCharge;
+                return this.subtotal - this.discountAmount;
             },
             get itemCount() {
                 return this.cart.reduce((sum, item) => sum + item.qty, 0);
@@ -538,10 +538,6 @@
                     reference_number: method === 'mobile_money' ? referenceNumber : null,
                     amount_received: amountReceived,
                     total: this.total,
-                    tax_amount: this.tax,
-                    service_charge: this.serviceCharge,
-                    tax_rate: this.taxRate,
-                    service_charge_rate: this.serviceChargeRate,
                     order_id: this.activeOrderId,
                     billed_item_ids: billedItemIds.length > 0 ? billedItemIds : null,
                 };
