@@ -1,8 +1,12 @@
 <nav class="sidebar" x-data="sidebarNav()" :class="{ collapsed: $root.closest('.sidebar-collapsed') }">
     <div class="sidebar-brand">
-        <a href="{{ route('dashboard') }}">
-            <i class="fas fa-glass-cheers"></i>
-            <span class="brand-text">MyBar</span>
+        <a href="{{ route('dashboard') }}" class="d-flex align-items-center gap-2">
+            @if(\App\Models\Setting::get('site_logo'))
+                <img src="{{ \App\Models\Setting::get('site_logo') }}" alt="logo" style="max-height: 30px; max-width: 30px; object-fit: contain;">
+            @else
+                <i class="fas fa-glass-cheers" style="color: var(--primary);"></i>
+            @endif
+            <span class="brand-text">{{ \App\Models\Setting::get('business_name', 'MyBar') }}</span>
         </a>
         <button class="btn btn-link sidebar-close d-none" @click="$dispatch('toggle-sidebar')" style="color:#fff;font-size:1.2rem;padding:0;margin-left:auto;">
             <i class="fas fa-times"></i>
@@ -146,6 +150,44 @@
             </a>
         </div>
         @endif
+
+        <!-- PWA Install Card -->
+        <div id="pwa-install-card" class="m-3 p-3 rounded text-center border-0 d-none" style="background: rgba(255,255,255,0.05); color: #fff;">
+            <i class="fas fa-mobile-alt mb-2" style="font-size: 1.5rem; color: var(--primary);"></i>
+            <h6 class="small fw-semibold mb-1">Get the Mobile App</h6>
+            <p class="x-small text-muted mb-2" style="font-size: 0.75rem; line-height: 1.2;">Access MyBar directly from your home screen for quick offline access!</p>
+            <button id="pwa-install-btn" class="btn btn-sm btn-primary w-100">
+                <i class="fas fa-download me-1"></i> Install App
+            </button>
+        </div>
+
+        <!-- Offline Sync Status Card -->
+        <div id="offline-sync-card" class="m-3 p-3 rounded border-0" style="background: rgba(255,255,255,0.05); color: #fff;" x-data="offlineSync()">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="small fw-semibold">Connection</span>
+                <span class="badge" :class="isOnline ? 'bg-success' : 'bg-danger'">
+                    <i class="fas" :class="isOnline ? 'fa-wifi' : 'fa-wifi-slash'"></i>
+                    <span x-text="isOnline ? 'Online' : 'Offline'"></span>
+                </span>
+            </div>
+            <template x-if="offlineCount > 0">
+                <div>
+                    <p class="x-small mb-2 text-warning" style="font-size: 0.72rem; line-height: 1.2;">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        <span x-text="offlineCount + ' transaction(s) pending sync.'"></span>
+                    </p>
+                    <button class="btn btn-sm btn-outline-warning w-100" @click="syncData()" :disabled="syncing || !isOnline">
+                        <i class="fas" :class="syncing ? 'fa-spinner fa-spin' : 'fa-sync-alt'"></i>
+                        <span x-text="syncing ? 'Syncing...' : 'Sync Now'"></span>
+                    </button>
+                </div>
+            </template>
+            <template x-if="offlineCount === 0">
+                <p class="x-small mb-0 text-muted" style="font-size: 0.72rem;">
+                    <i class="fas fa-check-circle text-success me-1"></i> All data is synced.
+                </p>
+            </template>
+        </div>
     </div>
 
     <style>
@@ -213,6 +255,10 @@
         .sidebar-collapsed .menu-item { justify-content: center; padding: 0.6rem 0; }
         .sidebar::-webkit-scrollbar { width: 3px; }
         .sidebar::-webkit-scrollbar-thumb { background: #3a3a50; border-radius: 3px; }
+        .sidebar-collapsed #pwa-install-card,
+        .sidebar-collapsed #offline-sync-card {
+            display: none !important;
+        }
     </style>
 
     <script>

@@ -93,5 +93,52 @@
             if (rows.length > 1) e.target.closest('.item-row').remove();
         }
     });
+
+    document.querySelector('form')?.addEventListener('submit', function(e) {
+        if (!navigator.onLine) {
+            e.preventDefault();
+            
+            const items = [];
+            document.querySelectorAll('.item-row').forEach(row => {
+                const select = row.querySelector('select[name*="[product_id]"]');
+                const qtyInput = row.querySelector('input[name*="[qty]"]');
+                const notesInput = row.querySelector('input[name*="[notes]"]');
+                if (select && select.value) {
+                    items.push({
+                        product_id: select.value,
+                        qty: qtyInput ? parseInt(qtyInput.value) : 1,
+                        notes: notesInput ? notesInput.value : ''
+                    });
+                }
+            });
+
+            if (items.length === 0) {
+                Swal.fire('Error', 'Please select at least one product', 'error');
+                return;
+            }
+
+            const orderData = {
+                table_id: document.querySelector('select[name="table_id"]').value,
+                notes: document.querySelector('input[name="notes"]').value,
+                customer_name: '',
+                items: items
+            };
+
+            window.OfflineSyncManager.saveTransaction({
+                type: 'order',
+                data: orderData,
+                timestamp: new Date().getTime()
+            });
+
+            Swal.fire({
+                icon: 'warning',
+                title: 'Offline Order Placed',
+                text: 'Order stored locally and will sync when internet is back.',
+                confirmButtonText: 'OK'
+            }).then(() => {
+                window.location.href = '{{ route('waiter.index') }}';
+            });
+        }
+    });
 </script>
 @endpush

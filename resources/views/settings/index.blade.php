@@ -12,6 +12,11 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
+            <button class="nav-link" :class="{ active: activeTab === 'branding' }" @click="activeTab = 'branding'" type="button">
+                <i class="fas fa-palette me-1"></i> Branding & Theme
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
             <button class="nav-link" :class="{ active: activeTab === 'billing' }" @click="activeTab = 'billing'" type="button">
                 <i class="fas fa-receipt me-1"></i> Billing
             </button>
@@ -29,7 +34,7 @@
         </li>
     </ul>
 
-    <form method="POST" action="{{ route('settings.update') }}">
+    <form method="POST" action="{{ route('settings.update') }}" enctype="multipart/form-data">
         @csrf
 
         <div x-show="activeTab === 'general'" x-transition:enter="fade-in">
@@ -87,6 +92,46 @@
                                 <option value="en" {{ ($settings['language'] ?? 'en') === 'en' ? 'selected' : '' }}>English</option>
                                 <option value="sw" {{ ($settings['language'] ?? '') === 'sw' ? 'selected' : '' }}>Swahili</option>
                             </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="activeTab === 'branding'" x-transition:enter="fade-in">
+            <div class="card">
+                <div class="card-header">Branding & Theme Settings</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label d-block">Favicon (.ico, .png, max 100kb)</label>
+                            <input type="file" class="form-control" name="favicon" accept="image/*">
+                            @if(\App\Models\Setting::get('favicon'))
+                                <div class="mt-2">
+                                    <span class="small text-muted">Current Favicon:</span>
+                                    <img src="{{ \App\Models\Setting::get('favicon') }}" alt="favicon" style="height: 24px; width: 24px; object-fit: contain; margin-left: 10px;">
+                                </div>
+                            @endif
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label d-block">Site Logo (max 500kb)</label>
+                            <input type="file" class="form-control" name="site_logo" accept="image/*">
+                            @if(\App\Models\Setting::get('site_logo'))
+                                <div class="mt-2">
+                                    <span class="small text-muted">Current Logo:</span>
+                                    <img src="{{ \App\Models\Setting::get('site_logo') }}" alt="logo" style="height: 24px; width: 24px; object-fit: contain; margin-left: 10px;">
+                                </div>
+                            @endif
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Theme Primary Accent Color</label>
+                            <input type="color" class="form-control form-control-color w-100" style="height: 38px; padding: 4px;" name="accent_color" value="{{ old('accent_color', $settings['accent_color'] ?? '#7367f0') }}">
+                            <small class="text-muted">Changes the site buttons, active menu states, etc.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Theme Primary Accent Color (Dark Hover)</label>
+                            <input type="color" class="form-control form-control-color w-100" style="height: 38px; padding: 4px;" name="accent_color_dark" value="{{ old('accent_color_dark', $settings['accent_color_dark'] ?? '#5e50ee') }}">
+                            <small class="text-muted">The darker hover color corresponding to the accent color above.</small>
                         </div>
                     </div>
                 </div>

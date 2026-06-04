@@ -488,31 +488,107 @@
             splitBill() {
                 Swal.fire({ title: 'Split Bill', text: 'Split bill functionality - coming soon', icon: 'info' });
             },
+            buildOfflineReceiptHtml(txData, receiptNo) {
+                const itemsHtml = txData.items.map(item => {
+                    const product = this.products.find(p => p.id === item.id);
+                    const name = product ? product.name : 'Product';
+                    return `
+                        <tr>
+                            <td>${name} x ${item.qty}</td>
+                            <td class="text-end">${this.formatCurrency(item.price * item.qty)}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                return `
+                    <div style="font-family: monospace; font-size: 14px; text-align: left;">
+                        <h5 class="text-center mb-1">{{ \App\Models\Setting::get('business_name', 'MyBar') }}</h5>
+                        <p class="text-center small text-muted mb-3">Offline Receipt</p>
+                        <table class="w-100 mb-3" style="border-collapse: collapse;">
+                            ${itemsHtml}
+                        </table>
+                        <hr style="border-top: 1px dashed #ccc;">
+                        <div class="d-flex justify-content-between font-semibold">
+                            <span>Subtotal:</span>
+                            <span>${this.formatCurrency(txData.items.reduce((sum, i) => sum + i.price * i.qty, 0))}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Discount:</span>
+                            <span>${this.formatCurrency(txData.discount)}</span>
+                        </div>
+                        <div class="d-flex justify-content-between font-bold" style="font-size: 16px;">
+                            <span>Total:</span>
+                            <span>${this.formatCurrency(txData.total)}</span>
+                        </div>
+                    </div>
+                `;
+            },
             async processPayment(method, amountReceived, mobileProvider = null, referenceNumber = null) {
                 const billedItemIds = Object.entries(this.orderItemStatuses)
                     .filter(([_, v]) => v.selected)
                     .map(([id, _]) => parseInt(id));
 
+                const paymentData = {
+                    items: this.cart.map(i => ({ id: i.id, qty: i.qty, price: i.selling_price })),
+                    customer_id: this.selectedCustomer,
+                    discount: this.discount,
+                    discount_type: this.discountType,
+                    payment_method: method,
+                    mobile_provider: method === 'mobile_money' ? mobileProvider : null,
+                    reference_number: method === 'mobile_money' ? referenceNumber : null,
+                    amount_received: amountReceived,
+                    total: this.total,
+                    tax_amount: this.tax,
+                    service_charge: this.serviceCharge,
+                    tax_rate: this.taxRate,
+                    service_charge_rate: this.serviceChargeRate,
+                    order_id: this.activeOrderId,
+                    billed_item_ids: billedItemIds.length > 0 ? billedItemIds : null,
+                };
+
+                if (!navigator.onLine) {
+                    const tempReceiptNo = 'OFF-' + new Date().getTime().toString().substr(-6);
+                    window.OfflineSyncManager.saveTransaction({
+                        type: 'payment',
+                        data: paymentData,
+                        timestamp: new Date().getTime()
+                    });
+
+                    // Decrement local stocks
+                    this.cart.forEach(item => {
+                        const product = this.products.find(p => p.id === item.id);
+                        if (product) {
+                            product.current_stock = Math.max(0, product.current_stock - item.qty);
+                        }
+                    });
+                    window.cacheAppData(this.products, this.categories);
+
+                    const modalEl = document.getElementById('paymentModal');
+                    if (modalEl) {
+                        const paymentModal = bootstrap.Modal.getInstance(modalEl);
+                        if (paymentModal) paymentModal.hide();
+                    }
+
+                    const receiptHtml = this.buildOfflineReceiptHtml(paymentData, tempReceiptNo);
+                    this.resetCart();
+
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Offline Payment Successful',
+                        html: '<div class="mb-2 text-muted small">Receipt #' + tempReceiptNo + '</div>' + receiptHtml,
+                        confirmButtonText: 'OK',
+                        width: 420,
+                        padding: '1rem',
+                    });
+                    
+                    this.fetchPendingOrders();
+                    return;
+                }
+
                 const resp = await fetch('{{ route('pos.payment') }}', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                    body: JSON.stringify({
-                        items: this.cart.map(i => ({ id: i.id, qty: i.qty, price: i.selling_price })),
-                        customer_id: this.selectedCustomer,
-                        discount: this.discount,
-                        discount_type: this.discountType,
-                        payment_method: method,
-                        mobile_provider: method === 'mobile_money' ? mobileProvider : null,
-                        reference_number: method === 'mobile_money' ? referenceNumber : null,
-                        amount_received: amountReceived,
-                        total: this.total,
-                        tax_amount: this.tax,
-                        service_charge: this.serviceCharge,
-                        tax_rate: this.taxRate,
-                        service_charge_rate: this.serviceChargeRate,
-                        order_id: this.activeOrderId,
-                        billed_item_ids: billedItemIds.length > 0 ? billedItemIds : null,
-                    })
+                    body: JSON.stringify(paymentData)
                 });
                 const data = await resp.json();
                 if (data.success) {

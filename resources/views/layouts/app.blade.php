@@ -4,7 +4,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', config('app.name', 'MyBar POS')) - {{ config('app.name') }}</title>
+    <title>@yield('title', \App\Models\Setting::get('business_name', 'MyBar POS')) - {{ \App\Models\Setting::get('business_name', 'MyBar POS') }}</title>
+
+    @if(\App\Models\Setting::get('favicon'))
+        <link rel="icon" type="image/x-icon" href="{{ \App\Models\Setting::get('favicon') }}">
+    @else
+        <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    @endif
 
     <link rel="manifest" href="/manifest.json">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,8 +27,8 @@
             --sidebar-width: 260px;
             --sidebar-collapsed-width: 70px;
             --topbar-height: 60px;
-            --primary: #7367f0;
-            --primary-dark: #5e50ee;
+            --primary: {{ \App\Models\Setting::get('accent_color', '#7367f0') }};
+            --primary-dark: {{ \App\Models\Setting::get('accent_color_dark', '#5e50ee') }};
         }
         * { font-family: 'Poppins', sans-serif; }
         body {
@@ -161,7 +167,7 @@
             </div>
 
             <footer class="text-center py-3 text-muted small">
-                &copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.
+                &copy; {{ date('Y') }} {{ \App\Models\Setting::get('business_name', 'MyBar') }}. All rights reserved.
             </footer>
         </div>
     </div>
@@ -273,6 +279,177 @@
                     return s.position === 'before'
                         ? s.symbol + ' ' + formatted
                         : formatted + ' ' + s.symbol;
+                }
+            }
+        }
+
+        // PWA & Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker registered successfully:', reg.scope))
+                    .catch(err => console.error('Service Worker registration failed:', err));
+            });
+        }
+
+        // Global OfflineSyncManager
+        window.OfflineSyncManager = {
+            getTransactions() {
+                try {
+                    return JSON.parse(localStorage.getItem('mybar_offline_transactions') || '[]');
+                } catch (e) {
+                    return [];
+                }
+            },
+            saveTransaction(tx) {
+                const txs = this.getTransactions();
+                txs.push(tx);
+                localStorage.setItem('mybar_offline_transactions', JSON.stringify(txs));
+                window.dispatchEvent(new CustomEvent('offline-sync-update', { detail: { count: txs.length } }));
+            },
+            clearTransactions() {
+                localStorage.removeItem('mybar_offline_transactions');
+                window.dispatchEvent(new CustomEvent('offline-sync-update', { detail: { count: 0 } }));
+            },
+            removeTransaction(index) {
+                const txs = this.getTransactions();
+                txs.splice(index, 1);
+                localStorage.setItem('mybar_offline_transactions', JSON.stringify(txs));
+                window.dispatchEvent(new CustomEvent('offline-sync-update', { detail: { count: txs.length } }));
+            },
+            async syncAll() {
+                const txs = this.getTransactions();
+                if (txs.length === 0) return 0;
+                
+                let successCount = 0;
+                for (let i = 0; i < txs.length; i++) {
+                    const tx = txs[i];
+                    try {
+                        const url = tx.type === 'order' ? '{{ route('waiter.orders.store') }}' : '{{ route('pos.payment') }}';
+                        const resp = await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify(tx.data)
+                        });
+                        const data = await resp.json();
+                        if (data.success || data.id) {
+                            successCount++;
+                        } else {
+                            console.error('Failed to sync offline item:', data.message || 'unknown error');
+                        }
+                    } catch (e) {
+                        console.error('Network error during offline sync:', e);
+                        break; // Stop syncing if network error happens again
+                    }
+                }
+                
+                // Remove successfully synced items
+                const currentTxs = this.getTransactions();
+                currentTxs.splice(0, successCount);
+                localStorage.setItem('mybar_offline_transactions', JSON.stringify(currentTxs));
+                window.dispatchEvent(new CustomEvent('offline-sync-update', { detail: { count: currentTxs.length } }));
+                
+                return successCount;
+            }
+        };
+
+        // PWA Install Event Handler
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const installCard = document.getElementById('pwa-install-card');
+            if (installCard) {
+                installCard.classList.remove('d-none');
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const installBtn = document.getElementById('pwa-install-btn');
+            if (installBtn) {
+                installBtn.addEventListener('click', async () => {
+                    if (deferredPrompt) {
+                        deferredPrompt.prompt();
+                        const { outcome } = await deferredPrompt.userChoice;
+                        if (outcome === 'accepted') {
+                            console.log('User accepted the install prompt');
+                        }
+                        deferredPrompt = null;
+                        const installCard = document.getElementById('pwa-install-card');
+                        if (installCard) {
+                            installCard.classList.add('d-none');
+                        }
+                    }
+                });
+            }
+        });
+
+        // Offline Status Indicators
+        window.addEventListener('online', () => {
+            const banner = document.getElementById('offlineBanner');
+            if (banner) banner.classList.add('d-none');
+            // Auto sync when online
+            setTimeout(() => {
+                window.OfflineSyncManager.syncAll().then(count => {
+                    if (count > 0) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Synced!',
+                            text: `Successfully uploaded ${count} offline transaction(s).`,
+                            timer: 3000,
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false
+                        });
+                    }
+                });
+            }, 1000);
+        });
+
+        window.addEventListener('offline', () => {
+            const banner = document.getElementById('offlineBanner');
+            if (banner) banner.classList.remove('d-none');
+        });
+
+        // Offline Sync Alpine Component
+        function offlineSync() {
+            return {
+                isOnline: navigator.onLine,
+                offlineCount: 0,
+                syncing: false,
+                init() {
+                    this.offlineCount = window.OfflineSyncManager.getTransactions().length;
+                    window.addEventListener('online', () => { this.isOnline = true; });
+                    window.addEventListener('offline', () => { this.isOnline = false; });
+                    window.addEventListener('offline-sync-update', (e) => {
+                        this.offlineCount = e.detail ? e.detail.count : window.OfflineSyncManager.getTransactions().length;
+                    });
+                    
+                    // Double check initial status
+                    if (!this.isOnline) {
+                        const banner = document.getElementById('offlineBanner');
+                        if (banner) banner.classList.remove('d-none');
+                    }
+                },
+                async syncData() {
+                    this.syncing = true;
+                    try {
+                        const count = await window.OfflineSyncManager.syncAll();
+                        if (count > 0) {
+                            Swal.fire('Synced!', `Successfully synced ${count} items.`, 'success');
+                        } else if (this.offlineCount > 0) {
+                            Swal.fire('Partial Sync / Error', 'Some items could not be synced. Check connection.', 'warning');
+                        }
+                    } catch (e) {
+                        Swal.fire('Sync Failed', 'Failed to synchronize data.', 'error');
+                    } finally {
+                        this.syncing = false;
+                        this.offlineCount = window.OfflineSyncManager.getTransactions().length;
+                    }
                 }
             }
         }
