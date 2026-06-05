@@ -25,6 +25,23 @@
             </div>
         </div>
 
+        <div class="row g-3 mb-3">
+            <div class="col-md-6 col-6">
+                <div class="stat-box text-center" style="background:#fbe9e7">
+                    <small class="text-muted">Total Expenses</small>
+                    <h4 class="mb-0 text-danger">{{ number_format($data['total_expenses'] ?? 0) }}</h4>
+                </div>
+            </div>
+            <div class="col-md-6 col-6">
+                <div class="stat-box text-center" style="background:{{ ($data['net_profit'] ?? 0) >= 0 ? '#e8f5e9' : '#fbe9e7' }}">
+                    <small class="text-muted">Net Profit / Loss</small>
+                    <h4 class="mb-0" style="color:{{ ($data['net_profit'] ?? 0) >= 0 ? '#2e7d32' : '#c62828' }}">
+                        {{ number_format($data['net_profit'] ?? 0) }}
+                    </h4>
+                </div>
+            </div>
+        </div>
+
         <div class="table-responsive">
             <table class="table table-hover table-sm">
                 <thead class="table-light">

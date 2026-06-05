@@ -144,11 +144,47 @@
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <div class="alert alert-info py-2 mb-0" role="alert">
-                                <i class="fas fa-info-circle me-2"></i>
-                                <strong>Taxes & Service Charges are disabled.</strong>
-                                Product prices are the final payable amounts — no additional taxes or fees are applied at checkout.
+                            <h6 class="fw-semibold mb-2"><i class="fas fa-percentage me-1"></i> Tax Configuration</h6>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input type="hidden" name="enable_tax" value="0">
+                                <input type="checkbox" class="form-check-input" name="enable_tax" value="1" id="enableTax" {{ ($settings['enable_tax'] ?? false) ? 'checked' : '' }}>
+                                <label class="form-check-label" for="enableTax">Enable Tax</label>
                             </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Tax Label</label>
+                            <input type="text" class="form-control" name="tax_label" value="{{ old('tax_label', $settings['tax_label'] ?? 'VAT') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Tax Rate (%)</label>
+                            <input type="number" class="form-control" name="tax_rate" value="{{ old('tax_rate', $settings['tax_rate'] ?? 18) }}" min="0" max="100" step="0.01">
+                            <small class="text-muted">Default rate for new products; each product can override this.</small>
+                        </div>
+                        <div class="col-12">
+                            <hr class="my-2">
+                        </div>
+                        <div class="col-12">
+                            <h6 class="fw-semibold mb-2"><i class="fas fa-concierge-bell me-1"></i> Service Charge Configuration</h6>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input type="hidden" name="enable_service_charge" value="0">
+                                <input type="checkbox" class="form-check-input" name="enable_service_charge" value="1" id="enableServiceCharge" {{ ($settings['enable_service_charge'] ?? false) ? 'checked' : '' }}>
+                                <label class="form-check-label" for="enableServiceCharge">Enable Service Charge</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Service Charge Label</label>
+                            <input type="text" class="form-control" name="service_charge_label" value="{{ old('service_charge_label', $settings['service_charge_label'] ?? 'Service Charge') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Service Charge Rate (%)</label>
+                            <input type="number" class="form-control" name="service_charge_rate" value="{{ old('service_charge_rate', $settings['service_charge_rate'] ?? 5) }}" min="0" max="100" step="0.01">
+                        </div>
+                        <div class="col-12">
+                            <hr class="my-2">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Default Payment Method</label>

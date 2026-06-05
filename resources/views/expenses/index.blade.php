@@ -30,10 +30,10 @@
                     @forelse($expenses ?? [] as $expense)
                     <tr>
                         <td class="fw-medium">{{ $expense->description }}</td>
-                        <td>{{ $expense->category->name ?? 'N/A' }}</td>
+                        <td>{{ $expense->category ?? 'N/A' }}</td>
                         <td>{{ number_format($expense->amount, 0) }}</td>
                         <td><small>{{ $expense->date->format('d M Y') }}</small></td>
-                        <td>{{ $expense->user->name ?? 'N/A' }}</td>
+                        <td>{{ $expense->createdBy->name ?? 'N/A' }}</td>
                         <td class="text-end">
                             <a href="{{ route('expenses.edit', $expense->id) }}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
                             <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete('{{ route('expenses.destroy', $expense->id) }}')"><i class="fas fa-trash"></i></button>

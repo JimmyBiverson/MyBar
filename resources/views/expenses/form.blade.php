@@ -22,13 +22,13 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Category <span class="text-danger">*</span></label>
-                            <select class="form-select @error('category_id') is-invalid @enderror" name="category_id" required>
-                                <option value="">Select Category</option>
-                                @foreach(\App\Models\ExpenseCategory::all() as $cat)
-                                    <option value="{{ $cat->id }}" {{ old('category_id', $expense->category_id ?? '') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+                            <input type="text" class="form-control @error('category') is-invalid @enderror" name="category" list="categoryList" value="{{ old('category', $expense->category ?? '') }}" placeholder="Type or select a category" required>
+                            <datalist id="categoryList">
+                                @foreach($categories ?? [] as $cat)
+                                    <option value="{{ $cat }}">
                                 @endforeach
-                            </select>
-                            @error('category_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </datalist>
+                            @error('category') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Amount <span class="text-danger">*</span></label>
@@ -37,8 +37,8 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Date <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control @error('date') is-invalid @enderror" name="date" value="{{ old('date', isset($expense) ? $expense->date->format('Y-m-d') : date('Y-m-d')) }}" required>
-                            @error('date') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            <input type="date" class="form-control @error('expense_date') is-invalid @enderror" name="expense_date" value="{{ old('expense_date', isset($expense) ? $expense->expense_date->format('Y-m-d') : date('Y-m-d')) }}" required>
+                            @error('expense_date') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Payment Method</label>

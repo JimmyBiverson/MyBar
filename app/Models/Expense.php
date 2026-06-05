@@ -16,6 +16,7 @@ class Expense extends Model
         'expense_date',
         'payment_method',
         'reference_no',
+        'notes',
         'created_by',
         'branch_id',
     ];

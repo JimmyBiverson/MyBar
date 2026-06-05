@@ -35,7 +35,25 @@ class WaiterController extends Controller
             ->where('status', 'available')
             ->get();
 
-        return view('waiter.index', compact('assignedTables', 'activeOrders', 'tables'));
+        $todayOrdersCount = Order::where('waiter_id', $waiterId)
+            ->whereDate('created_at', today())
+            ->count();
+
+        $todaySalesTotal = (float) Bill::where('payment_status', 'paid')
+            ->whereHas('order', fn ($q) => $q->where('waiter_id', $waiterId))
+            ->whereDate('created_at', today())
+            ->sum('total_amount');
+
+        $pendingPaymentsCount = Order::where('waiter_id', $waiterId)
+            ->whereIn('status', ['confirmed', 'preparing', 'ready', 'served'])
+            ->where('bill_requested', true)
+            ->whereDoesntHave('bill', fn ($q) => $q->where('payment_status', 'paid'))
+            ->count();
+
+        return view('waiter.index', compact(
+            'assignedTables', 'activeOrders', 'tables',
+            'todayOrdersCount', 'todaySalesTotal', 'pendingPaymentsCount',
+        ));
     }
 
     public function orders()
@@ -171,7 +189,7 @@ class WaiterController extends Controller
         $branchId = auth()->user()->branch_id;
         $products = Product::where('is_active', true)
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-            ->get(['id', 'name', 'selling_price', 'current_stock']);
+            ->get(['id', 'name', 'selling_price', 'current_stock', 'tax_method', 'tax_rate']);
 
         return response()->json(['products' => $products]);
     }
@@ -195,9 +213,13 @@ class WaiterController extends Controller
                 'items' => $o->items->map(fn ($i) => [
                     'id' => $i->id,
                     'product_name' => $i->product->name ?? 'N/A',
+                    'product_id' => $i->product_id,
+                    'price' => (float) $i->price,
                     'qty' => $i->quantity,
                     'status' => $i->status,
                     'rejection_reason' => $i->rejection_reason,
+                    'tax_method' => $i->product->tax_method ?? 'exclusive',
+                    'tax_rate' => (float) ($i->product->tax_rate ?? 0),
                 ]),
                 'payment_status' => $o->payment_status,
                 'bill_requested' => $o->bill_requested,
@@ -275,14 +297,42 @@ class WaiterController extends Controller
     {
         $request->validate(['order_id' => 'required|exists:orders,id']);
 
-        $order = Order::with('items')->where('waiter_id', auth()->id())->findOrFail($request->order_id);
+        $order = Order::with('items.product')->where('waiter_id', auth()->id())->findOrFail($request->order_id);
+
+        $subtotal = $order->items->sum('subtotal');
+
+        // Per-product tax calculation
+        $enableTax = Setting::get('enable_tax', false);
+        $enableServiceCharge = Setting::get('enable_service_charge', false);
+        $serviceChargeRate = (float) Setting::get('service_charge_rate', 5);
+
+        $taxAmount = 0;
+        if ($enableTax) {
+            foreach ($order->items as $item) {
+                $product = $item->product;
+                if ($product && (float) $product->tax_rate > 0) {
+                    $lineTotal = $item->subtotal;
+                    $rate = (float) $product->tax_rate;
+                    if ($product->tax_method === 'inclusive') {
+                        $taxAmount += $lineTotal - ($lineTotal / (1 + $rate / 100));
+                    } else {
+                        $taxAmount += $lineTotal * ($rate / 100);
+                    }
+                }
+            }
+        }
+
+        $serviceCharge = $enableServiceCharge ? $subtotal * ($serviceChargeRate / 100) : 0;
+        $total = $subtotal + $taxAmount + $serviceCharge;
 
         $bill = Bill::create([
             'bill_number' => Bill::generateBillNumber(),
             'order_id' => $order->id,
             'customer_id' => $order->customer_id,
-            'subtotal' => $order->items->sum('subtotal'),
-            'total_amount' => $order->items->sum('subtotal'),
+            'subtotal' => $subtotal,
+            'tax_amount' => $taxAmount,
+            'service_charge' => $serviceCharge,
+            'total_amount' => $total,
             'payment_status' => 'unpaid',
             'waiter_id' => auth()->id(),
             'branch_id' => auth()->user()?->branch_id,
@@ -321,7 +371,32 @@ class WaiterController extends Controller
         try {
             DB::beginTransaction();
 
-            $total = $order->items->sum('subtotal');
+            $subtotal = $order->items->sum('subtotal');
+
+            // Per-product tax calculation
+            $enableTax = Setting::get('enable_tax', false);
+            $enableServiceCharge = Setting::get('enable_service_charge', false);
+            $serviceChargeRate = (float) Setting::get('service_charge_rate', 5);
+
+            $taxAmount = 0;
+            if ($enableTax) {
+                foreach ($order->items as $item) {
+                    $product = $item->product;
+                    if ($product && (float) $product->tax_rate > 0) {
+                        $lineTotal = $item->subtotal;
+                        $rate = (float) $product->tax_rate;
+                        if ($product->tax_method === 'inclusive') {
+                            $taxAmount += $lineTotal - ($lineTotal / (1 + $rate / 100));
+                        } else {
+                            $taxAmount += $lineTotal * ($rate / 100);
+                        }
+                    }
+                }
+            }
+
+            $serviceCharge = $enableServiceCharge ? $subtotal * ($serviceChargeRate / 100) : 0;
+            $total = $subtotal + $taxAmount + $serviceCharge;
+
             $paidAmount = $request->amount_received;
             $changeAmount = max(0, $paidAmount - $total);
 
@@ -329,7 +404,9 @@ class WaiterController extends Controller
                 'bill_number' => Bill::generateBillNumber(),
                 'order_id' => $order->id,
                 'customer_id' => $order->customer_id,
-                'subtotal' => $total,
+                'subtotal' => $subtotal,
+                'tax_amount' => $taxAmount,
+                'service_charge' => $serviceCharge,
                 'total_amount' => $total,
                 'paid_amount' => $paidAmount,
                 'change_amount' => $changeAmount,

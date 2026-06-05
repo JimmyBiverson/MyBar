@@ -83,6 +83,19 @@
         </div>
     </div>
 
+    <template x-if="enableTax && tax > 0">
+        <div class="d-flex justify-content-between small mb-1">
+            <span x-text="taxLabel"></span>
+            <span x-text="formatCurrency(tax)"></span>
+        </div>
+    </template>
+    <template x-if="enableServiceCharge && serviceCharge > 0">
+        <div class="d-flex justify-content-between small mb-1">
+            <span x-text="serviceChargeLabel + ' (' + serviceChargeRate + '%)'"></span>
+            <span x-text="formatCurrency(serviceCharge)"></span>
+        </div>
+    </template>
+
     <hr class="my-2">
     <div class="d-flex justify-content-between fw-bold fs-5 mb-3">
         <span>Total</span>

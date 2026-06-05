@@ -48,6 +48,10 @@
         <tr><td class="r-label">Discount</td><td class="r-price">-{{ number_format($bill->discount, 0) }}</td></tr>
         @endif
 
+        @if($bill->tax_amount > 0)
+        <tr><td class="r-label">{{ \App\Models\Setting::get('tax_label', 'VAT') }}</td><td class="r-price">{{ number_format($bill->tax_amount, 0) }}</td></tr>
+        @endif
+
         @if($bill->service_charge > 0)
         <tr><td class="r-label">Service Charge</td><td class="r-price">{{ number_format($bill->service_charge, 0) }}</td></tr>
         @endif

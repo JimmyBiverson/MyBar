@@ -33,9 +33,12 @@ class POSController extends Controller
         $settings = Setting::whereIn('key', ['currency_symbol', 'currency_position'])
             ->pluck('value', 'key');
 
-        // Taxes and service charges are disabled — product price is the total payable
-        $taxRate = 0;
-        $serviceChargeRate = 0;
+        // Tax & service charge settings
+        $enableTax = Setting::get('enable_tax', false);
+        $taxLabel = Setting::get('tax_label', 'VAT');
+        $enableServiceCharge = Setting::get('enable_service_charge', false);
+        $serviceChargeLabel = Setting::get('service_charge_label', 'Service Charge');
+        $serviceChargeRate = Setting::get('service_charge_rate', 5);
 
         $preloadOrder = null;
         if ($request->filled('order_id')) {
@@ -61,13 +64,29 @@ class POSController extends Controller
                         'stock' => $i->product->current_stock ?? 0,
                         'status' => $i->status,
                         'notes' => $i->notes,
+                        'tax_method' => $i->product->tax_method ?? 'exclusive',
+                        'tax_rate' => (float) ($i->product->tax_rate ?? 0),
                     ]),
                     'created_at' => $order->created_at->format('H:i'),
                 ];
             }
         }
 
-        return view('pos.index', compact('products', 'categories', 'tables', 'customers', 'settings', 'taxRate', 'serviceChargeRate', 'preloadOrder'));
+        $todaySales = (float) Bill::where('payment_status', 'paid')
+            ->whereDate('created_at', today())
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->sum('total_amount');
+
+        $pendingOrdersCount = Order::whereIn('status', ['pending', 'confirmed', 'preparing', 'ready', 'served'])
+            ->whereDoesntHave('bill', fn ($q) => $q->where('payment_status', 'paid'))
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->count();
+
+        return view('pos.index', compact(
+            'products', 'categories', 'tables', 'customers', 'settings',
+            'enableTax', 'taxLabel', 'enableServiceCharge', 'serviceChargeLabel', 'serviceChargeRate',
+            'preloadOrder', 'todaySales', 'pendingOrdersCount',
+        ));
     }
 
     public function pendingOrders()
@@ -103,6 +122,8 @@ class POSController extends Controller
                     'stock' => $i->product->current_stock ?? 0,
                     'status' => $i->status,
                     'notes' => $i->notes,
+                    'tax_method' => $i->product->tax_method ?? 'exclusive',
+                    'tax_rate' => (float) ($i->product->tax_rate ?? 0),
                 ]),
                 'created_at' => $o->created_at->format('H:i'),
             ]);
@@ -228,8 +249,6 @@ class POSController extends Controller
         try {
             DB::beginTransaction();
 
-            $paidAmount = $request->amount_received ?? $request->total;
-            $changeAmount = max(0, $paidAmount - $request->total);
             $subtotal = collect($request->items)->sum(fn ($i) => $i['price'] * $i['qty']);
             $discountValue = (float) ($request->discount ?? 0);
             $discountType = $request->discount_type ?? 'percentage';
@@ -237,8 +256,35 @@ class POSController extends Controller
                 ? $subtotal * ($discountValue / 100)
                 : $discountValue;
             $afterDiscount = $subtotal - $discountAmount;
-            $taxAmount = 0;  // Taxes disabled — product price is the payable amount
-            $serviceCharge = 0; // Service charge disabled
+
+            // Per-product tax calculation
+            $enableTax = Setting::get('enable_tax', false);
+            $enableServiceCharge = Setting::get('enable_service_charge', false);
+            $serviceChargeRate = (float) Setting::get('service_charge_rate', 5);
+
+            $taxAmount = 0;
+            if ($enableTax) {
+                foreach ($request->items as $item) {
+                    $product = Product::find($item['id']);
+                    if ($product && (float) $product->tax_rate > 0) {
+                        $lineTotal = $item['price'] * $item['qty'];
+                        $rate = (float) $product->tax_rate;
+                        if ($product->tax_method === 'inclusive') {
+                            $taxAmount += $lineTotal - ($lineTotal / (1 + $rate / 100));
+                        } else {
+                            $taxAmount += $lineTotal * ($rate / 100);
+                        }
+                    }
+                }
+            }
+
+            $serviceCharge = $enableServiceCharge ? $subtotal * ($serviceChargeRate / 100) : 0;
+
+            // Server-calculated total (ignores client-submitted total for security)
+            $totalAmount = $afterDiscount + $taxAmount + $serviceCharge;
+
+            $paidAmount = $request->amount_received ?? $totalAmount;
+            $changeAmount = max(0, $paidAmount - $totalAmount);
 
             // Check if there is an existing unpaid bill for this order
             $bill = null;
@@ -257,7 +303,7 @@ class POSController extends Controller
                     'subtotal' => $subtotal,
                     'tax_amount' => $taxAmount,
                     'service_charge' => $serviceCharge,
-                    'total_amount' => $request->total,
+                    'total_amount' => $totalAmount,
                     'paid_amount' => $paidAmount,
                     'change_amount' => $changeAmount,
                     'payment_method' => $request->payment_method,
@@ -279,7 +325,7 @@ class POSController extends Controller
                     'subtotal' => $subtotal,
                     'tax_amount' => $taxAmount,
                     'service_charge' => $serviceCharge,
-                    'total_amount' => $request->total,
+                    'total_amount' => $totalAmount,
                     'paid_amount' => $paidAmount,
                     'change_amount' => $changeAmount,
                     'payment_method' => $request->payment_method,

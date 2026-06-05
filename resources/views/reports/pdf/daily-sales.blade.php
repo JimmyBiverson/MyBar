@@ -25,6 +25,8 @@
 
     <table class="summary" style="width:auto;margin:0 auto 15px;">
         <tr><td><strong>Total Sales:</strong></td><td class="text-right">UGX {{ number_format($total_sales ?? 0, 0) }}</td></tr>
+        <tr><td><strong>Total Expenses:</strong></td><td class="text-right">UGX {{ number_format($total_expenses ?? 0, 0) }}</td></tr>
+        <tr><td><strong>Net Profit / Loss:</strong></td><td class="text-right" style="color: {{ ($net_profit ?? 0) >= 0 ? '#2e7d32' : '#c62828' }}">UGX {{ number_format($net_profit ?? 0, 0) }}</td></tr>
         <tr><td><strong>Orders Count:</strong></td><td class="text-right">{{ $total_transactions ?? 0 }}</td></tr>
         <tr><td><strong>Avg per Transaction:</strong></td><td class="text-right">UGX {{ number_format($average_per_transaction ?? 0, 0) }}</td></tr>
     </table>

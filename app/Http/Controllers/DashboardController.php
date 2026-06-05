@@ -86,7 +86,7 @@ class DashboardController extends Controller
             });
 
         $recentOrders = Order::with(['table', 'waiter', 'items.product', 'bill'])
-            ->whereIn('status', ['confirmed', 'preparing', 'ready', 'served', 'completed'])
+            ->whereIn('status', ['pending', 'confirmed', 'preparing', 'ready', 'served', 'completed'])
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->latest()
             ->take(10)
@@ -99,6 +99,7 @@ class DashboardController extends Controller
         )
             ->with('product')
             ->whereHas('bill', fn ($q) => $q->where('payment_status', 'paid')
+                ->whereDate('created_at', '>=', now()->startOfMonth())
                 ->when(auth()->user()->branch_id, fn ($bq) => $bq->where('branch_id', auth()->user()->branch_id)))
             ->groupBy('product_id')
             ->orderByDesc('total_qty')

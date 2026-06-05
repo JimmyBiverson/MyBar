@@ -4,6 +4,48 @@
 
 @section('content')
 <div x-data="waiterApp()" x-init="init()">
+    <div class="row g-3 mb-3">
+        <div class="col-md-4 col-6">
+            <div class="card border-start border-primary border-4 h-100">
+                <div class="card-body d-flex align-items-center justify-content-between py-2">
+                    <div>
+                        <p class="text-muted mb-0 small">Today's Orders</p>
+                        <h4 class="mb-0 fw-bold">{{ $todayOrdersCount ?? 0 }}</h4>
+                    </div>
+                    <div class="icon-box bg-primary-subtle rounded-circle p-2">
+                        <i class="fas fa-clipboard-list text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-6">
+            <div class="card border-start border-warning border-4 h-100">
+                <div class="card-body d-flex align-items-center justify-content-between py-2">
+                    <div>
+                        <p class="text-muted mb-0 small">Pending Payments</p>
+                        <h4 class="mb-0 fw-bold">{{ $pendingPaymentsCount ?? 0 }}</h4>
+                    </div>
+                    <div class="icon-box bg-warning-subtle rounded-circle p-2">
+                        <i class="fas fa-credit-card text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-6">
+            <div class="card border-start border-success border-4 h-100">
+                <div class="card-body d-flex align-items-center justify-content-between py-2">
+                    <div>
+                        <p class="text-muted mb-0 small">Today's Sales</p>
+                        <h4 class="mb-0 fw-bold">{{ number_format($todaySalesTotal ?? 0, 0) }}</h4>
+                    </div>
+                    <div class="icon-box bg-success-subtle rounded-circle p-2">
+                        <i class="fas fa-money-bill-trend-up text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0"><i class="fas fa-chair me-2"></i>My Assigned Tables</h5>
         <a href="{{ route('waiter.orders.create') }}" class="btn btn-primary btn-sm">

@@ -170,9 +170,17 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="text-center mb-4">
+                    <div class="text-center mb-3">
                         <small class="text-muted">Total Amount</small>
                         <h2 class="fw-bold text-primary" x-text="formatCurrency(paymentTotal)"></h2>
+                        <div class="small text-muted mt-1">
+                            <template x-if="enableTax && paymentOrderItems.some(i => (parseFloat(i.tax_rate)||0) > 0)">
+                                <span class="me-2" x-text="taxLabel + ' included'"></span>
+                            </template>
+                            <template x-if="enableServiceCharge">
+                                <span x-text="serviceChargeLabel + ' (' + serviceChargeRate + '%)'"></span>
+                            </template>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Payment Method</label>
@@ -252,8 +260,14 @@
             filterTable: '',
             refreshTimer: null,
             paymentOrderId: null,
+            paymentOrderItems: [],
             paymentTotal: 0,
             paymentMethod: 'cash',
+            enableTax: @json(\App\Models\Setting::get('enable_tax', false)),
+            taxLabel: @json(\App\Models\Setting::get('tax_label', 'VAT')),
+            enableServiceCharge: @json(\App\Models\Setting::get('enable_service_charge', false)),
+            serviceChargeLabel: @json(\App\Models\Setting::get('service_charge_label', 'Service Charge')),
+            serviceChargeRate: @json((float) \App\Models\Setting::get('service_charge_rate', 5)),
             mobileProvider: 'mtn',
             paymentReference: '',
             amountReceived: 0,
@@ -387,11 +401,30 @@
             },
             openPayment(order) {
                 this.paymentOrderId = order.id;
-                this.paymentTotal = order.total;
+                this.paymentOrderItems = order.items || [];
+
+                let subtotal = 0;
+                let taxAmount = 0;
+
+                this.paymentOrderItems.forEach(item => {
+                    const lineTotal = (item.price || 0) * (item.qty || 0);
+                    subtotal += lineTotal;
+                    if (this.enableTax && (parseFloat(item.tax_rate) || 0) > 0) {
+                        const rate = parseFloat(item.tax_rate);
+                        if (item.tax_method === 'inclusive') {
+                            taxAmount += lineTotal - (lineTotal / (1 + rate / 100));
+                        } else {
+                            taxAmount += lineTotal * (rate / 100);
+                        }
+                    }
+                });
+
+                const serviceCharge = this.enableServiceCharge ? subtotal * (this.serviceChargeRate / 100) : 0;
+                this.paymentTotal = subtotal + taxAmount + serviceCharge;
                 this.paymentMethod = 'cash';
                 this.mobileProvider = 'mtn';
                 this.paymentReference = '';
-                this.amountReceived = order.total;
+                this.amountReceived = this.paymentTotal;
                 const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
                 modal.show();
             },

@@ -73,6 +73,21 @@
                             @error('reorder_level') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
                         <div class="col-md-4">
+                            <label class="form-label">Tax Method</label>
+                            <select class="form-select @error('tax_method') is-invalid @enderror" name="tax_method">
+                                <option value="exclusive" {{ old('tax_method', $product->tax_method ?? 'exclusive') === 'exclusive' ? 'selected' : '' }}>Exclusive (tax added on top)</option>
+                                <option value="inclusive" {{ old('tax_method', $product->tax_method ?? '') === 'inclusive' ? 'selected' : '' }}>Inclusive (tax included in price)</option>
+                            </select>
+                            <small class="text-muted">How tax is applied to this product.</small>
+                            @error('tax_method') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Tax Rate (%)</label>
+                            <input type="number" step="0.01" class="form-control @error('tax_rate') is-invalid @enderror" name="tax_rate" value="{{ old('tax_rate', $product->tax_rate ?? 0) }}" min="0" max="100">
+                            <small class="text-muted">Set to 0 for no tax on this product.</small>
+                            @error('tax_rate') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label">Barcode</label>
                             <input type="text" class="form-control @error('barcode') is-invalid @enderror" name="barcode" value="{{ old('barcode', $product->barcode ?? '') }}">
                             @error('barcode') <div class="invalid-feedback">{{ $message }}</div> @enderror

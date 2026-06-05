@@ -120,6 +120,69 @@
         </div>
     </div>
 
+    @if(($lowStockProducts ?? [])->isNotEmpty() || ($mediumStockProducts ?? [])->isNotEmpty())
+    <div class="row g-3 mb-4">
+        <div class="col-xl-6">
+            <div class="card border-start border-danger border-4 h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-exclamation-triangle text-danger me-2"></i>Low Stock Products</span>
+                    <span class="badge bg-danger">{{ $stockStatusCounts['low'] ?? 0 }} items</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr><th>Product</th><th>Category</th><th class="text-end">Stock</th><th class="text-center">Status</th></tr>
+                            </thead>
+                            <tbody>
+                                @forelse($lowStockProducts ?? [] as $p)
+                                <tr>
+                                    <td class="fw-medium">{{ $p->name }}</td>
+                                    <td>{{ $p->category->name ?? 'N/A' }}</td>
+                                    <td class="text-end text-danger fw-bold">{{ number_format($p->current_stock, 0) }}</td>
+                                    <td class="text-center"><span class="badge bg-danger">Low</span></td>
+                                </tr>
+                                @empty
+                                <tr><td colspan="4" class="text-center text-muted py-3">No low stock items</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6">
+            <div class="card border-start border-warning border-4 h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-exclamation-circle text-warning me-2"></i>Medium Stock Products</span>
+                    <span class="badge bg-warning text-dark">{{ $stockStatusCounts['medium'] ?? 0 }} items</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr><th>Product</th><th>Category</th><th class="text-end">Stock</th><th class="text-center">Status</th></tr>
+                            </thead>
+                            <tbody>
+                                @forelse($mediumStockProducts ?? [] as $p)
+                                <tr>
+                                    <td class="fw-medium">{{ $p->name }}</td>
+                                    <td>{{ $p->category->name ?? 'N/A' }}</td>
+                                    <td class="text-end text-warning fw-bold">{{ number_format($p->current_stock, 0) }}</td>
+                                    <td class="text-center"><span class="badge bg-warning text-dark">Medium</span></td>
+                                </tr>
+                                @empty
+                                <tr><td colspan="4" class="text-center text-muted py-3">No medium stock items</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <div class="row g-3 mb-4">
         <div class="col-xl-8">
             <div class="card">

@@ -47,6 +47,7 @@ class ExpenseController extends Controller
             'expense_date' => 'required|date',
             'payment_method' => 'nullable|string|max:50',
             'reference_no' => 'nullable|string|max:100',
+            'notes' => 'nullable|string|max:1000',
             'branch_id' => 'nullable|exists:branches,id',
         ]);
 
@@ -58,6 +59,7 @@ class ExpenseController extends Controller
                 'expense_date' => $request->expense_date,
                 'payment_method' => $request->payment_method,
                 'reference_no' => $request->reference_no,
+                'notes' => $request->notes,
                 'created_by' => auth()->id(),
                 'branch_id' => $request->branch_id ?? auth()->user()->branch_id,
             ]);
@@ -84,12 +86,13 @@ class ExpenseController extends Controller
             'expense_date' => 'required|date',
             'payment_method' => 'nullable|string|max:50',
             'reference_no' => 'nullable|string|max:100',
+            'notes' => 'nullable|string|max:1000',
         ]);
 
         try {
             $expense->update($request->only([
                 'description', 'amount', 'category', 'expense_date',
-                'payment_method', 'reference_no',
+                'payment_method', 'reference_no', 'notes',
             ]));
 
             return redirect()->route('expenses.index')

@@ -69,8 +69,14 @@ class ReportController extends Controller
             ->groupBy('payment_method')
             ->get();
 
+        $totalExpenses = (float) Expense::whereDate('expense_date', $date)
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->sum('amount');
+
         return [
             'total_sales' => $totalSales,
+            'total_expenses' => $totalExpenses,
+            'net_profit' => $totalSales - $totalExpenses,
             'total_transactions' => $ordersCount,
             'average_per_transaction' => $ordersCount > 0 ? round($totalSales / $ordersCount) : 0,
             'total_discounts' => 0,
@@ -103,12 +109,18 @@ class ReportController extends Controller
             ->orderBy('date')
             ->get();
 
+        $totalExpenses = (float) Expense::whereBetween('expense_date', [$startOfMonth, $endOfMonth])
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->sum('amount');
+
         $daysInMonth = now()->month === $month->month && now()->year === $month->year
             ? now()->day
             : $month->daysInMonth;
 
         return [
             'total_sales' => $sales,
+            'total_expenses' => $totalExpenses,
+            'net_profit' => $sales - $totalExpenses,
             'total_transactions' => $transactions,
             'average_daily' => $daysInMonth > 0 ? round($sales / $daysInMonth) : 0,
             'monthly_data' => $dailyData,
@@ -334,8 +346,14 @@ class ReportController extends Controller
                         ]);
                     }
                     fputcsv($handle, []);
-                    fputcsv($handle, ['TOTAL SALES', '', '', '', number_format($bills->sum('total_amount'), 0), '']);
+                    $totalSales = (float) $bills->sum('total_amount');
+                    $dailyExpenses = (float) Expense::whereDate('expense_date', $dateFrom)
+                        ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+                        ->sum('amount');
+                    fputcsv($handle, ['TOTAL SALES', '', '', '', number_format($totalSales, 0), '']);
                     fputcsv($handle, ['TOTAL TRANSACTIONS', $bills->count()]);
+                    fputcsv($handle, ['TOTAL EXPENSES', '', '', '', number_format($dailyExpenses, 0), '']);
+                    fputcsv($handle, ['NET PROFIT / LOSS', '', '', '', number_format($totalSales - $dailyExpenses, 0), '']);
                     break;
 
                 case 'monthly_sales':
@@ -351,7 +369,13 @@ class ReportController extends Controller
                     foreach ($dailyData as $d) {
                         fputcsv($handle, [$d->date, number_format((float) ($d->total_sum ?? $d->total ?? 0), 0)]);
                     }
-                    fputcsv($handle, ['TOTAL', number_format($dailyData->sum(fn($r) => $r->total_sum ?? $r->total ?? 0), 0)]);
+                    $monthlyTotalSales = $dailyData->sum(fn($r) => $r->total_sum ?? $r->total ?? 0);
+                    $monthlyExpenses = (float) Expense::whereBetween('expense_date', [$month->copy()->startOfMonth(), $month->copy()->endOfMonth()])
+                        ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+                        ->sum('amount');
+                    fputcsv($handle, ['TOTAL SALES', number_format($monthlyTotalSales, 0)]);
+                    fputcsv($handle, ['TOTAL EXPENSES', number_format($monthlyExpenses, 0)]);
+                    fputcsv($handle, ['NET PROFIT / LOSS', number_format($monthlyTotalSales - $monthlyExpenses, 0)]);
                     break;
 
                 case 'profit_loss':

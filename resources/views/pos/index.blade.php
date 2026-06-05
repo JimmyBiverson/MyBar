@@ -9,6 +9,35 @@
 @endsection
 
 @section('content')
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <div class="card border-start border-primary border-4">
+            <div class="card-body d-flex align-items-center justify-content-between py-2">
+                <div>
+                    <p class="text-muted mb-0 small">Today's Sales</p>
+                    <h4 class="mb-0 fw-bold">{{ number_format($todaySales ?? 0, 0) }}</h4>
+                </div>
+                <div class="icon-box bg-primary-subtle rounded-circle p-2">
+                    <i class="fas fa-money-bill-trend-up text-primary"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card border-start border-warning border-4">
+            <div class="card-body d-flex align-items-center justify-content-between py-2">
+                <div>
+                    <p class="text-muted mb-0 small">Pending Orders</p>
+                    <h4 class="mb-0 fw-bold">{{ $pendingOrdersCount ?? 0 }}</h4>
+                </div>
+                <div class="icon-box bg-warning-subtle rounded-circle p-2">
+                    <i class="fas fa-clock text-warning"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="pos-container" x-data="posApp()" x-init="init()">
     <div class="row g-3">
         <div class="col-lg-7 col-xl-8">
@@ -224,8 +253,11 @@
             orderItemStatuses: {},
             unavailableItem: null,
             unavailableReason: '',
-            taxRate: 0,
-            serviceChargeRate: 0,
+            enableTax: @json($enableTax ?? false),
+            taxLabel: @json($taxLabel ?? 'VAT'),
+            enableServiceCharge: @json($enableServiceCharge ?? false),
+            serviceChargeLabel: @json($serviceChargeLabel ?? 'Service Charge'),
+            serviceChargeRate: @json((float) ($serviceChargeRate ?? 5)),
             filteredProducts: [],
             previousOrderCount: 0,
             newOrderAlert: false,
@@ -322,13 +354,23 @@
                     : this.discount;
             },
             get tax() {
-                return 0; // Taxes disabled
+                if (!this.enableTax) return 0;
+                return this.cart.reduce((sum, item) => {
+                    const lineTotal = item.selling_price * item.qty;
+                    const rate = parseFloat(item.tax_rate) || 0;
+                    if (rate <= 0) return sum;
+                    if (item.tax_method === 'inclusive') {
+                        return sum + (lineTotal - (lineTotal / (1 + rate / 100)));
+                    }
+                    return sum + (lineTotal * (rate / 100));
+                }, 0);
             },
             get serviceCharge() {
-                return 0; // Service charge disabled
+                if (!this.enableServiceCharge) return 0;
+                return this.subtotal * (this.serviceChargeRate / 100);
             },
             get total() {
-                return this.subtotal - this.discountAmount;
+                return this.subtotal - this.discountAmount + this.tax + this.serviceCharge;
             },
             get itemCount() {
                 return this.cart.reduce((sum, item) => sum + item.qty, 0);
@@ -356,6 +398,8 @@
                         selling_price: i.selling_price,
                         qty: i.qty,
                         stock: i.stock,
+                        tax_method: i.tax_method || 'exclusive',
+                        tax_rate: parseFloat(i.tax_rate) || 0,
                     }));
                 this.discount = 0;
                 this.discountType = 'percentage';
@@ -500,6 +544,14 @@
                     `;
                 }).join('');
 
+                const subtotal = txData.items.reduce((sum, i) => sum + i.price * i.qty, 0);
+                const taxLine = this.tax > 0
+                    ? `<div class="d-flex justify-content-between"><span>${this.taxLabel}:</span><span>${this.formatCurrency(this.tax)}</span></div>`
+                    : '';
+                const scLine = this.serviceCharge > 0
+                    ? `<div class="d-flex justify-content-between"><span>${this.serviceChargeLabel}:</span><span>${this.formatCurrency(this.serviceCharge)}</span></div>`
+                    : '';
+
                 return `
                     <div style="font-family: monospace; font-size: 14px; text-align: left;">
                         <h5 class="text-center mb-1">{{ \App\Models\Setting::get('business_name', 'MyBar') }}</h5>
@@ -510,12 +562,14 @@
                         <hr style="border-top: 1px dashed #ccc;">
                         <div class="d-flex justify-content-between font-semibold">
                             <span>Subtotal:</span>
-                            <span>${this.formatCurrency(txData.items.reduce((sum, i) => sum + i.price * i.qty, 0))}</span>
+                            <span>${this.formatCurrency(subtotal)}</span>
                         </div>
                         <div class="d-flex justify-content-between">
                             <span>Discount:</span>
                             <span>${this.formatCurrency(txData.discount)}</span>
                         </div>
+                        ${taxLine}
+                        ${scLine}
                         <div class="d-flex justify-content-between font-bold" style="font-size: 16px;">
                             <span>Total:</span>
                             <span>${this.formatCurrency(txData.total)}</span>

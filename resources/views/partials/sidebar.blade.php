@@ -112,7 +112,7 @@
                 <span>Kitchen Display</span>
             </a>
             @endif
-            @if(auth()->user()?->isAdmin() || auth()->user()?->isManager() || auth()->user()?->isAccountant())
+            @if(auth()->user()?->isAdmin() || auth()->user()?->isManager() || auth()->user()?->isCashier() || auth()->user()?->isWaiter() || auth()->user()?->isAccountant())
             <a href="{{ route('expenses.index') }}" class="menu-item {{ request()->routeIs('expenses.*') ? 'active' : '' }}">
                 <i class="fas fa-money-bill-wave"></i>
                 <span>Expenses</span>
