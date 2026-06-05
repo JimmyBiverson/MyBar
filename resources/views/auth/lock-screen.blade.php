@@ -1,12 +1,20 @@
 @extends('layouts.auth')
-@section('title', 'PIN Login')
+@section('title', 'Session Locked')
 
 @section('content')
-    <form method="POST" action="{{ route('pin.login.verify') }}" x-data="pinLogin()">
+    <div class="text-center mb-4">
+        <div class="mb-3">
+            <i class="fas fa-lock fa-3x text-primary"></i>
+        </div>
+        <h5 class="fw-semibold">Session Locked</h5>
+        <p class="text-muted small mb-1">Welcome back, <strong>{{ session('locked_user_name') }}</strong></p>
+        <p class="text-muted small">Enter your PIN to unlock</p>
+    </div>
+
+    <form method="POST" action="{{ route('unlock') }}" x-data="lockScreen()">
         @csrf
 
-        <div class="text-center mb-4">
-            <p class="text-muted small">Enter your PIN to sign in</p>
+        <div class="text-center mb-3">
             <div class="pin-display d-flex justify-content-center gap-2 mb-3">
                 <template x-for="(dot, index) in 4" :key="index">
                     <div class="pin-dot" :class="{ filled: pin.length > index }">
@@ -54,17 +62,20 @@
         </div>
 
         <button type="submit" class="btn btn-primary w-100 mt-3" :disabled="pin.length !== 4">
-            <i class="fas fa-arrow-right me-1"></i> Sign In
+            <i class="fas fa-unlock me-1"></i> Unlock
         </button>
     </form>
 
     <div class="auth-footer">
-        <a href="{{ route('login') }}"><i class="fas fa-envelope me-1"></i> Email Login</a>
+        <a href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('lock-logout-form').submit();">
+            <i class="fas fa-sign-out-alt me-1"></i> Logout Instead
+        </a>
+        <form id="lock-logout-form" action="{{ route('logout') }}" method="POST" class="d-none">@csrf</form>
     </div>
 
     @push('scripts')
     <script>
-        function pinLogin() {
+        function lockScreen() {
             return {
                 pin: '',
                 addDigit(d) { if (this.pin.length < 4) this.pin += d; },
@@ -72,6 +83,19 @@
                 clearPin() { this.pin = ''; }
             }
         }
+
+        // Auto-submit when 4 digits entered
+        document.addEventListener('alpine:init', () => {
+            Alpine.effect(() => {
+                const el = document.querySelector('[x-data="lockScreen()"]');
+                if (el && el.__x) {
+                    const pin = el.__x.$data.pin;
+                    if (pin.length === 4) {
+                        setTimeout(() => el.querySelector('button[type="submit"]')?.click(), 100);
+                    }
+                }
+            });
+        });
     </script>
     @endpush
 

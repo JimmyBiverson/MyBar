@@ -455,6 +455,37 @@
         }
     </script>
 
+    {{-- Auto-lock after 30 min of inactivity --}}
+    <script>
+        (function() {
+            let timeout;
+            const INACTIVITY_MS = 1800000;
+
+            function resetTimer() {
+                if (timeout) clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '{{ route('lock') }}';
+                    const csrf = document.createElement('input');
+                    csrf.type = 'hidden';
+                    csrf.name = '_token';
+                    csrf.value = '{{ csrf_token() }}';
+                    form.appendChild(csrf);
+                    document.body.appendChild(form);
+                    form.submit();
+                }, INACTIVITY_MS);
+            }
+
+            document.addEventListener('mousemove', resetTimer, { passive: true });
+            document.addEventListener('keydown', resetTimer, { passive: true });
+            document.addEventListener('click', resetTimer, { passive: true });
+            document.addEventListener('touchstart', resetTimer, { passive: true });
+            document.addEventListener('scroll', resetTimer, { passive: true });
+            resetTimer();
+        })();
+    </script>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>

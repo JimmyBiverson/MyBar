@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Branch;
 use App\Models\Role;
 use App\Models\User;
@@ -59,6 +60,13 @@ class UserController extends Controller
                 'status' => $request->status,
             ]);
 
+            ActivityLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'Created user: ' . $request->name,
+                'description' => 'Created user with email: ' . $request->email,
+                'properties' => ['ip' => $request->ip(), 'user_agent' => $request->userAgent()],
+            ]);
+
             return redirect()->route('users.index')
                 ->with('success', 'User created successfully.');
         } catch (\Exception $e) {
@@ -105,6 +113,13 @@ class UserController extends Controller
 
             $user->update($data);
 
+            ActivityLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'Updated user: ' . $user->name,
+                'description' => 'Updated user ID: ' . $user->id,
+                'properties' => ['ip' => $request->ip(), 'user_agent' => $request->userAgent()],
+            ]);
+
             return redirect()->route('users.index')
                 ->with('success', 'User updated successfully.');
         } catch (\Exception $e) {
@@ -112,10 +127,19 @@ class UserController extends Controller
         }
     }
 
-    public function destroy(User $user)
+    public function destroy(Request $request, User $user)
     {
         try {
+            $userName = $user->name;
             $user->delete();
+
+            ActivityLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'Deleted user: ' . $userName,
+                'description' => 'Deleted user ID: ' . $user->id,
+                'properties' => ['ip' => $request->ip(), 'user_agent' => $request->userAgent()],
+            ]);
+
             return redirect()->route('users.index')
                 ->with('success', 'User deleted successfully.');
         } catch (\Exception $e) {

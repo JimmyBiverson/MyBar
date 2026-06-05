@@ -64,6 +64,14 @@
                     </a>
                 </li>
                 @endcan
+                <li>
+                    <a class="dropdown-item" href="{{ route('lock.screen') }}" onclick="event.preventDefault(); document.getElementById('lock-form').submit();">
+                        <i class="fas fa-lock me-2"></i> Lock Screen
+                    </a>
+                    <form id="lock-form" action="{{ route('lock') }}" method="POST" class="d-none">
+                        @csrf
+                    </form>
+                </li>
                 <li><hr class="dropdown-divider"></li>
                 <li>
                     <a class="dropdown-item text-danger" href="{{ route('logout') }}"

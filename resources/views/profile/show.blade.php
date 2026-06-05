@@ -22,6 +22,11 @@
                     <hr>
                     <h6>Change Password (optional)</h6>
                     <div class="mb-3">
+                        <label class="form-label">Current Password <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control @error('current_password') is-invalid @enderror" name="current_password">
+                        @error('current_password') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">New Password</label>
                         <input type="password" class="form-control @error('password') is-invalid @enderror" name="password">
                         @error('password') <div class="invalid-feedback">{{ $message }}</div> @enderror

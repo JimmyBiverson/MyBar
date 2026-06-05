@@ -34,8 +34,8 @@
         </div>
         <div class="col-md-6">
             <label class="form-label">PIN Code</label>
-            <input type="password" class="form-control @error('pin') is-invalid @enderror" name="pin" maxlength="4" placeholder="4-digit PIN">
-            @error('pin') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            <input type="password" class="form-control @error('pin_code') is-invalid @enderror" name="pin_code" maxlength="4" placeholder="4-digit PIN">
+            @error('pin_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
         </div>
         <div class="col-md-6">
             <label class="form-label">Phone</label>

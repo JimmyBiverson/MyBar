@@ -217,6 +217,7 @@ class DashboardController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+            'current_password' => 'required_with:password|string|current_password',
             'password' => 'nullable|string|min:8|confirmed',
         ]);
 

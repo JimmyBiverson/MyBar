@@ -1,8 +1,8 @@
 <?php
 
 use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\LockController;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\BatchController;
 use App\Http\Controllers\BillController;
@@ -35,11 +35,9 @@ Route::get('/', function () {
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [LoginController::class, 'login']);
+    Route::post('/login', [LoginController::class, 'login'])->middleware('throttle:5,1');
     Route::get('/pin-login', [LoginController::class, 'showPinForm'])->name('pin.login');
-    Route::post('/pin-login', [LoginController::class, 'pinLogin'])->name('pin.login.verify');
-    Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
-    Route::post('/register', [RegisterController::class, 'register']);
+    Route::post('/pin-login', [LoginController::class, 'pinLogin'])->name('pin.login.verify')->middleware('throttle:5,1');
     Route::get('/forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
     Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
     Route::get('/reset-password/{token}', function ($token) {
@@ -57,7 +55,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/chart-data', [DashboardController::class, 'chartData'])->name('dashboard.chart-data');
 
-    Route::prefix('pos')->name('pos.')->group(function () {
+    Route::prefix('pos')->name('pos.')->middleware('role:Cashier,Super Admin,Manager')->group(function () {
         Route::get('/', [POSController::class, 'index'])->name('index');
         Route::get('/orders', [POSController::class, 'pendingOrders'])->name('orders');
         Route::get('/pending-count', [POSController::class, 'pendingCount'])->name('pending-count');
@@ -68,7 +66,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/resume/{bill}', [POSController::class, 'resumeHold'])->name('resume');
     });
 
-    Route::prefix('products')->name('products.')->group(function () {
+    Route::prefix('products')->name('products.')->middleware('role:Super Admin,Manager,Store Keeper')->group(function () {
         Route::get('/', [ProductController::class, 'index'])->name('index');
         Route::get('/create', [ProductController::class, 'create'])->name('create');
         Route::post('/', [ProductController::class, 'store'])->name('store');
@@ -77,7 +75,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{product}', [ProductController::class, 'destroy'])->name('destroy');
     });
 
-    Route::prefix('categories')->name('categories.')->group(function () {
+    Route::prefix('categories')->name('categories.')->middleware('role:Super Admin,Manager,Store Keeper')->group(function () {
         Route::get('/', [CategoryController::class, 'index'])->name('index');
         Route::get('/create', [CategoryController::class, 'create'])->name('create');
         Route::post('/', [CategoryController::class, 'store'])->name('store');
@@ -86,7 +84,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{category}', [CategoryController::class, 'destroy'])->name('destroy');
     });
 
-    Route::prefix('units')->name('units.')->group(function () {
+    Route::prefix('units')->name('units.')->middleware('role:Super Admin,Manager,Store Keeper')->group(function () {
         Route::get('/', [UnitController::class, 'index'])->name('index');
         Route::get('/create', [UnitController::class, 'create'])->name('create');
         Route::post('/', [UnitController::class, 'store'])->name('store');
@@ -95,7 +93,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{unit}', [UnitController::class, 'destroy'])->name('destroy');
     });
 
-    Route::prefix('batches')->name('batches.')->group(function () {
+    Route::prefix('batches')->name('batches.')->middleware('role:Super Admin,Manager,Store Keeper')->group(function () {
         Route::get('/', [BatchController::class, 'index'])->name('index');
         Route::get('/create', [BatchController::class, 'create'])->name('create');
         Route::post('/', [BatchController::class, 'store'])->name('store');
@@ -104,7 +102,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{batch}', [BatchController::class, 'destroy'])->name('destroy');
     });
 
-    Route::prefix('customers')->name('customers.')->group(function () {
+    Route::prefix('customers')->name('customers.')->middleware('role:Super Admin,Manager,Cashier,Store Keeper,Accountant')->group(function () {
         Route::get('/', [CustomerController::class, 'index'])->name('index');
         Route::get('/create', [CustomerController::class, 'create'])->name('create');
         Route::post('/', [CustomerController::class, 'store'])->name('store');
@@ -113,7 +111,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{customer}', [CustomerController::class, 'destroy'])->name('destroy');
     });
 
-    Route::prefix('suppliers')->name('suppliers.')->group(function () {
+    Route::prefix('suppliers')->name('suppliers.')->middleware('role:Super Admin,Manager,Cashier,Store Keeper,Accountant')->group(function () {
         Route::get('/', [SupplierController::class, 'index'])->name('index');
         Route::get('/create', [SupplierController::class, 'create'])->name('create');
         Route::post('/', [SupplierController::class, 'store'])->name('store');
@@ -122,7 +120,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{supplier}', [SupplierController::class, 'destroy'])->name('destroy');
     });
 
-    Route::prefix('orders')->name('orders.')->group(function () {
+    Route::prefix('orders')->name('orders.')->middleware('role:Super Admin,Manager,Cashier')->group(function () {
         Route::get('/', [OrderController::class, 'index'])->name('index');
         Route::get('/create', [OrderController::class, 'create'])->name('create');
         Route::post('/', [OrderController::class, 'store'])->name('store');
@@ -132,7 +130,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{order}', [OrderController::class, 'destroy'])->name('destroy');
     });
 
-    Route::prefix('billing')->name('billing.')->group(function () {
+    Route::prefix('billing')->name('billing.')->middleware('role:Super Admin,Manager,Cashier,Accountant')->group(function () {
         Route::get('/', [BillController::class, 'index'])->name('index');
         Route::get('/{bill}', [BillController::class, 'show'])->name('show');
         Route::get('/{bill}/print', [BillController::class, 'print'])->name('print');
@@ -140,7 +138,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/{bill}/receipt-content', [BillController::class, 'receiptContent'])->name('receipt-content');
     });
 
-    Route::prefix('expenses')->name('expenses.')->group(function () {
+    Route::prefix('expenses')->name('expenses.')->middleware('role:Super Admin,Manager,Cashier,Waiter')->group(function () {
         Route::get('/', [ExpenseController::class, 'index'])->name('index');
         Route::get('/create', [ExpenseController::class, 'create'])->name('create');
         Route::post('/', [ExpenseController::class, 'store'])->name('store');
@@ -149,7 +147,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{expense}', [ExpenseController::class, 'destroy'])->name('destroy');
     });
 
-    Route::prefix('tables')->name('tables.')->group(function () {
+    Route::prefix('tables')->name('tables.')->middleware('role:Super Admin,Manager')->group(function () {
         Route::get('/', [TableController::class, 'index'])->name('index');
         Route::get('/create', [TableController::class, 'create'])->name('create');
         Route::post('/', [TableController::class, 'store'])->name('store');
@@ -159,7 +157,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/qr/{id}', [TableController::class, 'showQr'])->name('qr');
     });
 
-    Route::prefix('purchases')->name('purchases.')->group(function () {
+    Route::prefix('purchases')->name('purchases.')->middleware('role:Super Admin,Manager,Store Keeper')->group(function () {
         Route::get('/', [PurchaseController::class, 'index'])->name('index');
         Route::get('/create', [PurchaseController::class, 'create'])->name('create');
         Route::post('/', [PurchaseController::class, 'store'])->name('store');
@@ -168,13 +166,13 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{purchase}', [PurchaseController::class, 'destroy'])->name('destroy');
     });
 
-    Route::prefix('kitchen')->name('kitchen.')->group(function () {
+    Route::prefix('kitchen')->name('kitchen.')->middleware('role:Kitchen Staff,Super Admin,Manager')->group(function () {
         Route::get('/', [KitchenController::class, 'index'])->name('index');
         Route::get('/orders', [KitchenController::class, 'getOrders'])->name('orders');
         Route::put('/orders/{order}/status', [KitchenController::class, 'updateStatus'])->name('update-status');
     });
 
-    Route::prefix('waiter')->name('waiter.')->group(function () {
+    Route::prefix('waiter')->name('waiter.')->middleware('role:Waiter,Super Admin,Manager')->group(function () {
         Route::get('/', [WaiterController::class, 'index'])->name('index');
         Route::get('/orders', [WaiterController::class, 'orders'])->name('orders');
         Route::post('/orders', [WaiterController::class, 'storeOrder'])->name('orders.store');
@@ -190,23 +188,23 @@ Route::middleware('auth')->group(function () {
         Route::post('/orders/pay', [WaiterController::class, 'processPayment'])->name('orders.pay');
     });
 
-    Route::prefix('reports')->name('reports.')->group(function () {
+    Route::prefix('reports')->name('reports.')->middleware('role:Super Admin,Manager,Accountant,Store Keeper')->group(function () {
         Route::get('/', [ReportController::class, 'index'])->name('index');
         Route::get('/export-pdf', [ReportController::class, 'exportPdf'])->name('export-pdf');
         Route::get('/export-excel', [ReportController::class, 'exportExcel'])->name('export-excel');
     });
 
-    Route::prefix('settings')->name('settings.')->group(function () {
+    Route::prefix('settings')->name('settings.')->middleware('role:Super Admin,Manager')->group(function () {
         Route::get('/', [SettingController::class, 'index'])->name('index');
         Route::post('/', [SettingController::class, 'update'])->name('update');
         Route::post('/backup', [SettingController::class, 'backupDatabase'])->name('backup');
     });
 
-    Route::prefix('activity-logs')->name('activities.')->group(function () {
+    Route::prefix('activity-logs')->name('activities.')->middleware('role:Super Admin,Manager')->group(function () {
         Route::get('/', [ActivityLogController::class, 'index'])->name('index');
     });
 
-    Route::prefix('users')->name('users.')->group(function () {
+    Route::prefix('users')->name('users.')->middleware('role:Super Admin,Manager')->group(function () {
         Route::get('/', [UserController::class, 'index'])->name('index');
         Route::get('/create', [UserController::class, 'create'])->name('create');
         Route::post('/', [UserController::class, 'store'])->name('store');
@@ -215,7 +213,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{user}', [UserController::class, 'destroy'])->name('destroy');
     });
 
-    Route::prefix('branches')->name('branches.')->group(function () {
+    Route::prefix('branches')->name('branches.')->middleware('role:Super Admin')->group(function () {
         Route::get('/', [BranchController::class, 'index'])->name('index');
         Route::get('/create', [BranchController::class, 'create'])->name('create');
         Route::post('/', [BranchController::class, 'store'])->name('store');
@@ -223,4 +221,8 @@ Route::middleware('auth')->group(function () {
         Route::put('/{branch}', [BranchController::class, 'update'])->name('update');
         Route::delete('/{branch}', [BranchController::class, 'destroy'])->name('destroy');
     });
+
+    Route::post('/lock', [LockController::class, 'lock'])->name('lock');
+    Route::get('/lock', [LockController::class, 'showLock'])->name('lock.screen');
+    Route::post('/unlock', [LockController::class, 'unlock'])->name('unlock');
 });

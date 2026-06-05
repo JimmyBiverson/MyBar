@@ -30,6 +30,8 @@ class LoginController extends Controller
             return back()->withErrors(['email' => 'Invalid credentials or account inactive.'])->onlyInput('email');
         }
 
+        $user->update(['last_login_at' => now()]);
+
         return $this->redirectBasedOnRole($user);
     }
 
@@ -61,6 +63,7 @@ class LoginController extends Controller
             return back()->withErrors(['pin_code' => 'Invalid PIN code.'])->onlyInput('pin_code');
         }
 
+        $user->update(['last_login_at' => now()]);
         Auth::login($user);
         return $this->redirectBasedOnRole($user);
     }
