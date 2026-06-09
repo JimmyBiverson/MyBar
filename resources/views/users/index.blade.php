@@ -34,7 +34,7 @@
                                 {{ $user->is_active ? 'Active' : 'Inactive' }}
                             </span>
                         </td>
-                        <td><small>{{ $user->last_login_at ? $user->last_login_at->diffForHumans() : 'Never' }}</small></td>
+                        <td><small>{{ $user->last_login_at ? $user->last_login_at->format('M d, Y h:i A') : 'Never' }}</small></td>
                         <td class="text-end">
                             <a href="{{ route('users.edit', $user->id) }}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>
                             @if($user->id !== 1)

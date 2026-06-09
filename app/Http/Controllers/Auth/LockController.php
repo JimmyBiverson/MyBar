@@ -58,6 +58,7 @@ class LockController extends Controller
 
         $intendedUrl = session('locked_intended_url');
 
+        $user->update(['last_login_at' => now()]);
         Auth::login($user);
         $request->session()->regenerate();
 

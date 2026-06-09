@@ -34,6 +34,7 @@ class RegisterController extends Controller
             'status' => 'active',
         ]);
 
+        $user->update(['last_login_at' => now()]);
         Auth::login($user);
 
         return redirect()->route('dashboard');

@@ -19,7 +19,7 @@ class UserController extends Controller
                     ->orWhere('email', 'like', "%{$request->search}%");
             }))
             ->when($request->role_id, fn ($q) => $q->where('role_id', $request->role_id))
-            ->when($branchId = auth()->user()->branch_id, fn ($q) => $q->where('branch_id', $branchId))
+            ->when(!auth()->user()->isAdmin(), fn ($q) => $q->where('branch_id', auth()->user()->branch_id))
             ->orderBy('name')
             ->paginate(15);
 
@@ -44,7 +44,7 @@ class UserController extends Controller
             'phone' => 'nullable|string|max:20',
             'pin_code' => 'nullable|string|digits:4',
             'is_active' => 'boolean',
-            'status' => 'required|string|in:active,inactive,suspended',
+            'status' => 'nullable|string|in:active,inactive,suspended',
         ]);
 
         try {
@@ -53,11 +53,11 @@ class UserController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
                 'role_id' => $request->role_id,
-                'branch_id' => $request->branch_id,
+                'branch_id' => $request->branch_id ?? auth()->user()->branch_id,
                 'phone' => $request->phone,
-                'pin_code' => $request->pin_code,
+                'pin_code' => $request->pin_code ? Hash::make($request->pin_code) : null,
                 'is_active' => $request->boolean('is_active', true),
-                'status' => $request->status,
+                'status' => $request->status ?? 'active',
             ]);
 
             ActivityLog::create([
@@ -92,7 +92,7 @@ class UserController extends Controller
             'phone' => 'nullable|string|max:20',
             'pin_code' => 'nullable|string|digits:4',
             'is_active' => 'boolean',
-            'status' => 'required|string|in:active,inactive,suspended',
+            'status' => 'nullable|string|in:active,inactive,suspended',
         ]);
 
         try {
@@ -102,9 +102,9 @@ class UserController extends Controller
                 'role_id' => $request->role_id,
                 'branch_id' => $request->branch_id,
                 'phone' => $request->phone,
-                'pin_code' => $request->pin_code,
+                'pin_code' => $request->pin_code ? Hash::make($request->pin_code) : null,
                 'is_active' => $request->boolean('is_active', true),
-                'status' => $request->status,
+                'status' => $request->status ?? $user->status,
             ];
 
             if ($request->filled('password')) {

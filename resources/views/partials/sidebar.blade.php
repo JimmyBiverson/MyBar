@@ -134,7 +134,7 @@
         @if(auth()->user()?->isAdmin() || auth()->user()?->isManager())
         <div class="menu-section">
             <div class="menu-label">{{ auth()->user()?->isManager() ? 'Administration' : 'Administration' }}</div>
-            @if(auth()->user()?->isAdmin())
+            @if(auth()->user()?->isAdmin() || auth()->user()?->isManager())
             <a href="{{ route('users.index') }}" class="menu-item {{ request()->routeIs('users.*') ? 'active' : '' }}">
                 <i class="fas fa-user-shield"></i>
                 <span>Users & Roles</span>
