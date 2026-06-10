@@ -46,8 +46,7 @@ class WaiterController extends Controller
 
         $pendingPaymentsCount = Order::where('waiter_id', $waiterId)
             ->whereIn('status', ['confirmed', 'preparing', 'ready', 'served'])
-            ->where('bill_requested', true)
-            ->whereDoesntHave('bill', fn ($q) => $q->where('payment_status', 'paid'))
+            ->whereHas('bill', fn ($q) => $q->where('payment_status', 'unpaid'))
             ->count();
 
         return view('waiter.index', compact(
@@ -400,24 +399,43 @@ class WaiterController extends Controller
             $paidAmount = $request->amount_received;
             $changeAmount = max(0, $paidAmount - $total);
 
-            $bill = Bill::create([
-                'bill_number' => Bill::generateBillNumber(),
-                'order_id' => $order->id,
-                'customer_id' => $order->customer_id,
-                'subtotal' => $subtotal,
-                'tax_amount' => $taxAmount,
-                'service_charge' => $serviceCharge,
-                'total_amount' => $total,
-                'paid_amount' => $paidAmount,
-                'change_amount' => $changeAmount,
-                'payment_method' => $request->payment_method,
-                'mobile_provider' => $request->mobile_provider,
-                'reference_number' => $request->reference_number,
-                'payment_status' => 'paid',
-                'waiter_id' => auth()->id(),
-                'processed_by_role' => 'waiter',
-                'branch_id' => auth()->user()->branch_id,
-            ]);
+            $bill = Bill::where('order_id', $order->id)->where('payment_status', 'unpaid')->first();
+
+            if ($bill) {
+                $bill->update([
+                    'subtotal' => $subtotal,
+                    'tax_amount' => $taxAmount,
+                    'service_charge' => $serviceCharge,
+                    'total_amount' => $total,
+                    'paid_amount' => $paidAmount,
+                    'change_amount' => $changeAmount,
+                    'payment_method' => $request->payment_method,
+                    'mobile_provider' => $request->mobile_provider,
+                    'reference_number' => $request->reference_number,
+                    'payment_status' => 'paid',
+                    'processed_by_role' => 'waiter',
+                ]);
+                $bill->items()->delete();
+            } else {
+                $bill = Bill::create([
+                    'bill_number' => Bill::generateBillNumber(),
+                    'order_id' => $order->id,
+                    'customer_id' => $order->customer_id,
+                    'subtotal' => $subtotal,
+                    'tax_amount' => $taxAmount,
+                    'service_charge' => $serviceCharge,
+                    'total_amount' => $total,
+                    'paid_amount' => $paidAmount,
+                    'change_amount' => $changeAmount,
+                    'payment_method' => $request->payment_method,
+                    'mobile_provider' => $request->mobile_provider,
+                    'reference_number' => $request->reference_number,
+                    'payment_status' => 'paid',
+                    'waiter_id' => auth()->id(),
+                    'processed_by_role' => 'waiter',
+                    'branch_id' => auth()->user()->branch_id,
+                ]);
+            }
 
             foreach ($order->items as $item) {
                 $product = $item->product;

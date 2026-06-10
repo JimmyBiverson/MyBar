@@ -130,7 +130,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{order}', [OrderController::class, 'destroy'])->name('destroy');
     });
 
-    Route::prefix('billing')->name('billing.')->middleware('role:Super Admin,Manager,Cashier,Accountant')->group(function () {
+    Route::prefix('billing')->name('billing.')->middleware('role:Super Admin,Manager,Cashier,Accountant,Waiter')->group(function () {
         Route::get('/', [BillController::class, 'index'])->name('index');
         Route::get('/{bill}', [BillController::class, 'show'])->name('show');
         Route::get('/{bill}/print', [BillController::class, 'print'])->name('print');
