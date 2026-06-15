@@ -30,13 +30,14 @@
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead class="table-light">
-                    <tr><th>Order #</th><th>Table</th><th>Items</th><th>Total</th><th>Status</th><th>Date</th><th class="text-end">Actions</th></tr>
+                    <tr><th>Order #</th><th>Table</th><th>Waiter</th><th>Items</th><th>Total</th><th>Status</th><th>Date</th><th class="text-end">Actions</th></tr>
                 </thead>
                 <tbody>
                     @forelse($orders ?? [] as $order)
                     <tr>
                         <td class="fw-medium">#{{ $order->id }}</td>
                         <td>{{ $order->table->name ?? 'Takeaway' }}</td>
+                        <td>{{ $order->waiter->name ?? 'N/A' }}</td>
                         <td>{{ $order->items_count ?? $order->items()->count() }}</td>
                         <td>{{ number_format($order->total ?? 0) }}</td>
                         <td>
@@ -56,7 +57,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="7" class="text-center text-muted py-4">No orders found</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted py-4">No orders found</td></tr>
                     @endforelse
                 </tbody>
             </table>

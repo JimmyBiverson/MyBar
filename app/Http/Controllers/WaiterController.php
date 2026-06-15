@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\Setting;
 use App\Models\StockMovement;
 use App\Models\Table;
 use Illuminate\Http\Request;
@@ -297,6 +298,11 @@ class WaiterController extends Controller
         $request->validate(['order_id' => 'required|exists:orders,id']);
 
         $order = Order::with('items.product')->where('waiter_id', auth()->id())->findOrFail($request->order_id);
+
+        $existingBill = Bill::where('order_id', $order->id)->where('payment_status', 'unpaid')->first();
+        if ($existingBill) {
+            return response()->json(['success' => true, 'bill_id' => $existingBill->id]);
+        }
 
         $subtotal = $order->items->sum('subtotal');
 

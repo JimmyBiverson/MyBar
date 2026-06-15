@@ -20,3 +20,8 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Kiro specs and temporary files
+/.kiro
+TASK_*_COMPLETION_SUMMARY.md
+check_users.php

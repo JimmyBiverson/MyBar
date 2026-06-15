@@ -64,6 +64,8 @@ class ProductController extends Controller
                 $data['image'] = $request->file('image')->store('products', 'public');
             }
 
+            $data['branch_id'] = $data['branch_id'] ?? auth()->user()->branch_id;
+
             Product::create($data);
 
             return redirect()->route('products.index')
@@ -106,6 +108,8 @@ class ProductController extends Controller
                 }
                 $data['image'] = $request->file('image')->store('products', 'public');
             }
+
+            $data['branch_id'] = $data['branch_id'] ?? auth()->user()->branch_id;
 
             $product->update($data);
 

@@ -17,6 +17,11 @@ class Bill extends Model
         'tax',
         'invoice_no',
         'items_count',
+        'processor_name',
+        'processor_badge_class',
+        'processor_label',
+        'full_waiter_identification',
+        'waiter_identification',
     ];
 
     protected $fillable = [
@@ -126,6 +131,85 @@ class Bill extends Model
     public function getItemsCountAttribute()
     {
         return $this->items->count();
+    }
+
+    public function getProcessorNameAttribute()
+    {
+        $processor = $this->cashier ?? $this->waiter;
+        if (!$processor) {
+            return 'N/A';
+        }
+        return $processor->display_name;
+    }
+
+    public function getProcessorBadgeClassAttribute()
+    {
+        return $this->processed_by_role === 'waiter' ? 'bg-info' : 'bg-secondary';
+    }
+
+    public function getProcessorLabelAttribute()
+    {
+        $processor = $this->cashier ?? $this->waiter;
+        $roleLabel = ucfirst($this->processed_by_role ?? 'cashier');
+        
+        // For waiters, include employee ID in the label
+        if ($this->processed_by_role === 'waiter' && $processor && $processor->employee_id) {
+            return "{$roleLabel} (#{$processor->employee_id})";
+        }
+        
+        return $roleLabel;
+    }
+
+    public function processor(): ?User
+    {
+        return $this->cashier ?? $this->waiter;
+    }
+
+    /**
+     * Get full waiter identification for administrative views.
+     * Returns a formatted string with waiter name and employee ID.
+     * Example: "John Doe - Employee #EMP001" or "John Doe" if no employee ID.
+     * 
+     * @return string Full waiter identification
+     */
+    public function getFullWaiterIdentificationAttribute(): string
+    {
+        $waiter = $this->waiter;
+        
+        if (!$waiter) {
+            return 'N/A';
+        }
+        
+        if ($waiter->employee_id) {
+            return "{$waiter->name} - Employee #{$waiter->employee_id}";
+        }
+        
+        return $waiter->name;
+    }
+
+    /**
+     * Get waiter identification for administrative views (short format).
+     * Returns formatted string: "Name (#EmployeeID)" or just "Name" if no ID.
+     * 
+     * @return string Waiter identification in short format
+     */
+    public function getWaiterIdentificationAttribute(): string
+    {
+        if ($this->processed_by_role !== 'waiter') {
+            return 'N/A';
+        }
+        
+        $waiter = $this->waiter;
+        
+        if (!$waiter) {
+            return 'N/A';
+        }
+        
+        if ($waiter->employee_id) {
+            return "{$waiter->name} (#{$waiter->employee_id})";
+        }
+        
+        return $waiter->name;
     }
 
     public static function generateBillNumber()

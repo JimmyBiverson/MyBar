@@ -130,7 +130,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{order}', [OrderController::class, 'destroy'])->name('destroy');
     });
 
-    Route::prefix('billing')->name('billing.')->middleware('role:Super Admin,Manager,Cashier,Accountant,Waiter')->group(function () {
+    Route::prefix('billing')->name('billing.')->middleware('role:Super Admin,Manager,Cashier,Accountant')->group(function () {
         Route::get('/', [BillController::class, 'index'])->name('index');
         Route::get('/{bill}', [BillController::class, 'show'])->name('show');
         Route::get('/{bill}/print', [BillController::class, 'print'])->name('print');
@@ -138,7 +138,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/{bill}/receipt-content', [BillController::class, 'receiptContent'])->name('receipt-content');
     });
 
-    Route::prefix('expenses')->name('expenses.')->middleware('role:Super Admin,Manager,Cashier,Waiter')->group(function () {
+    Route::prefix('expenses')->name('expenses.')->middleware('role:Super Admin,Manager,Cashier,Accountant')->group(function () {
         Route::get('/', [ExpenseController::class, 'index'])->name('index');
         Route::get('/create', [ExpenseController::class, 'create'])->name('create');
         Route::post('/', [ExpenseController::class, 'store'])->name('store');

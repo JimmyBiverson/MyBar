@@ -28,7 +28,7 @@
     <h3>INVOICE #{{ $bill->bill_number ?? $bill->id }}</h3>
     <p><strong>Date:</strong> {{ $bill->created_at->format('d M Y H:i') }}</p>
     <p><strong>Customer:</strong> {{ $bill->customer->name ?? 'Walk-in' }}</p>
-    <p><strong>Cashier:</strong> {{ $bill->cashier->name ?? 'N/A' }}</p>
+    <p><strong>Processed By:</strong> {{ $bill->waiter_identification ?? ($bill->cashier->name ?? 'N/A') }} ({{ ucfirst($bill->processed_by_role ?? 'cashier') }})</p>
     <table>
         <thead>
             <tr><th>Item</th><th class="text-center">Qty</th><th class="text-right">Price</th><th class="text-right">Total</th></tr>

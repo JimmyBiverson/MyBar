@@ -100,6 +100,12 @@
                             No payments today
                         @endforelse
                     </div>
+                    <hr class="my-2">
+                    <div class="text-center small">
+                        <div class="fw-semibold mb-1">Processed By</div>
+                        <span class="badge bg-info me-1"><i class="fas fa-user-tie me-1"></i>Waiter: {{ $processorStats->waiter_count ?? 0 }} ({{ number_format($processorStats->waiter_total ?? 0, 0) }})</span>
+                        <span class="badge bg-secondary me-1"><i class="fas fa-cash-register me-1"></i>Cashier: {{ $processorStats->cashier_count ?? 0 }} ({{ number_format($processorStats->cashier_total ?? 0, 0) }})</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -313,6 +319,7 @@
                                     <th>Bill #</th>
                                     <th>Customer</th>
                                     <th>Items</th>
+                                    <th>Processed By</th>
                                     <th class="text-end">Total</th>
                                     <th class="text-end">Date</th>
                                     <th class="text-center">Status</th>
@@ -324,6 +331,11 @@
                                     <td><a href="{{ route('billing.show', $bill->id) }}" class="fw-medium">#{{ $bill->bill_number }}</a></td>
                                     <td>{{ $bill->customer->name ?? 'Walk-in' }}</td>
                                     <td>{{ $bill->items_count ?? $bill->items->count() ?? 0 }}</td>
+                                    <td>
+                                        <i class="fas fa-{{ $bill->processed_by_role === 'waiter' ? 'user-tie' : 'cash-register' }} text-muted me-1"></i>
+                                        {{ $bill->cashier->name ?? $bill->waiter->name ?? 'N/A' }}
+                                        <span class="badge bg-{{ $bill->processed_by_role === 'waiter' ? 'info' : 'secondary' }}">{{ ucfirst($bill->processed_by_role ?? 'cashier') }}</span>
+                                    </td>
                                     <td class="text-end">{{ number_format($bill->total_amount ?? $bill->total ?? 0) }}</td>
                                     <td class="text-end"><small>{{ $bill->created_at->format('d M Y H:i') }}</small></td>
                                     <td class="text-center">
@@ -331,7 +343,7 @@
                                     </td>
                                 </tr>
                                 @empty
-                                <tr><td colspan="6" class="text-center text-muted py-3">No paid transactions yet</td></tr>
+                                <tr><td colspan="7" class="text-center text-muted py-3">No paid transactions yet</td></tr>
                                 @endforelse
                             </tbody>
                         </table>

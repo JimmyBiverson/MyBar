@@ -133,6 +133,16 @@ class DashboardController extends Controller
             ->toBase()
             ->get();
 
+        $processorStats = Bill::where('payment_status', 'paid')
+            ->whereDate('created_at', $today)
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->selectRaw("COUNT(*) as total_count")
+            ->selectRaw("SUM(CASE WHEN processed_by_role = 'waiter' THEN 1 ELSE 0 END) as waiter_count")
+            ->selectRaw("SUM(CASE WHEN processed_by_role = 'waiter' THEN total_amount ELSE 0 END) as waiter_total")
+            ->selectRaw("SUM(CASE WHEN processed_by_role = 'cashier' THEN 1 ELSE 0 END) as cashier_count")
+            ->selectRaw("SUM(CASE WHEN processed_by_role = 'cashier' THEN total_amount ELSE 0 END) as cashier_total")
+            ->first();
+
         $topCustomers = Bill::select(
             'customer_id',
             DB::raw('COUNT(*) as visit_count'),
@@ -172,7 +182,7 @@ class DashboardController extends Controller
             'lowStockCount', 'lowStockProducts', 'mediumStockProducts', 'stockStatusCounts',
             'recentTransactions', 'recentOrders', 'topProducts',
             'chartLabels', 'chartValues',
-            'paymentMethods', 'topCustomers', 'categorySales',
+            'paymentMethods', 'processorStats', 'topCustomers', 'categorySales',
         ));
     }
 

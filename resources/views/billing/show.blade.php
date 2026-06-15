@@ -41,7 +41,7 @@
     </div>
 
     <div class="col-lg-4">
-        <div class="card">
+        <div class="card mb-3">
             <div class="card-header"><i class="fas fa-info-circle me-2"></i>Payment Info</div>
             <div class="card-body">
                 <table class="table table-sm">
@@ -64,15 +64,40 @@
                     @endif
                 </table>
                 <hr>
-                <div><strong>Payment Method:</strong> {{ ucfirst($bill->payment_method ?? 'Cash') }}</div>
-                <div><strong>Status:</strong>
+                <div class="mb-2"><strong>Payment Method:</strong>
+                    <span class="badge bg-info-subtle text-info">
+                        <i class="fas {{ $bill->payment_method === 'cash' ? 'fa-money-bill' : ($bill->payment_method === 'mobile_money' ? 'fa-mobile-screen' : 'fa-credit-card') }} me-1"></i>
+                        {{ ucfirst(str_replace('_', ' ', $bill->payment_method ?? 'Cash')) }}
+                    </span>
+                </div>
+                <div class="mb-2"><strong>Status:</strong>
                     <span class="badge bg-{{ $bill->status === 'completed' ? 'success' : ($bill->status === 'pending' ? 'warning' : 'danger') }}">
                         {{ ucfirst($bill->status) }}
                     </span>
                 </div>
-                <div><strong>Customer:</strong> {{ $bill->customer->name ?? 'Walk-in' }}</div>
-                <div><strong>Cashier:</strong> {{ $bill->user->name ?? $bill->cashier->name ?? 'N/A' }}</div>
-                <div><strong>Date:</strong> {{ $bill->created_at->format('d M Y H:i:s') }}</div>
+                <div class="mb-2"><strong>Customer:</strong> {{ $bill->customer->name ?? 'Walk-in' }}</div>
+                <div class="mb-0"><strong>Date:</strong> {{ $bill->created_at->format('d M Y H:i:s') }}</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><i class="fas fa-user-cog me-2"></i>Processor</div>
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center justify-content-center rounded-circle {{ $bill->processor_badge_class }} text-white" style="width:48px;height:48px;font-size:1.3rem;">
+                        <i class="fas fa-{{ $bill->processed_by_role === 'waiter' ? 'user-tie' : 'cash-register' }}"></i>
+                    </div>
+                    <div>
+                        <div class="fw-semibold fs-6">{{ $bill->processor_name }}</div>
+                        <span class="badge {{ $bill->processor_badge_class }}">{{ $bill->processor_label }}</span>
+                    </div>
+                </div>
+                @if($bill->processed_by_role === 'waiter' && $bill->waiter)
+                <div class="mt-3 pt-2 border-top">
+                    <div class="small text-muted mb-2"><i class="fas fa-identification-badge me-1"></i> Waiter ID: <strong>{{ $bill->waiter->employee_id ?? 'N/A' }}</strong></div>
+                    <div class="small text-muted"><i class="fas fa-user me-1"></i> Name: <strong>{{ $bill->waiter->name }}</strong></div>
+                </div>
+                @endif
             </div>
         </div>
     </div>

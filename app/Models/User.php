@@ -29,6 +29,7 @@ class User extends Authenticatable
         'status',
         'avatar',
         'last_login_at',
+        'employee_id',
     ];
 
     /**
@@ -100,5 +101,30 @@ class User extends Authenticatable
     public function isAccountant(): bool
     {
         return $this->role?->name === 'Accountant';
+    }
+
+    /**
+     * Get the display name combining user name and employee ID.
+     * Returns format like "John Doe (#EMP001)"
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        if ($this->employee_id) {
+            return "{$this->name} (#{$this->employee_id})";
+        }
+        return $this->name;
+    }
+
+    /**
+     * Get validation rules for employee ID.
+     * Employee ID should be alphanumeric with format consistency.
+     * 
+     * @return array<string, string>
+     */
+    public static function getEmployeeIdValidationRules(): array
+    {
+        return [
+            'employee_id' => 'nullable|string|max:20|regex:/^[A-Z0-9]+$/',
+        ];
     }
 }

@@ -142,6 +142,84 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
         .dark ::-webkit-scrollbar-thumb { background: #555; }
+        
+        /* Pagination styling - reduce arrow sizes */
+        .pagination {
+            --bs-pagination-font-size: 0.875rem;
+            gap: 0.25rem;
+        }
+        .pagination .page-link {
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            color: #6c757d;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+        }
+        .pagination .page-item:first-child .page-link,
+        .pagination .page-item:last-child .page-link {
+            font-size: 1rem;
+            padding: 0.375rem 0.65rem;
+        }
+        .pagination .page-item.active .page-link {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+        }
+        .pagination .page-link:hover {
+            background-color: #f8f9fa;
+            border-color: #dee2e6;
+            color: var(--primary);
+        }
+        .dark .pagination .page-link, .dark-mode .pagination .page-link {
+            background: #2a2d33;
+            border-color: #3a3d45;
+            color: #b2b9c5;
+        }
+        .dark .pagination .page-item.active .page-link, .dark-mode .pagination .page-item.active .page-link {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+        }
+        .dark .pagination .page-link:hover, .dark-mode .pagination .page-link:hover {
+            background-color: #3a3d45;
+            border-color: #4a4d55;
+        }
+        
+        /* Target Tailwind/Laravel default pagination SVG arrows and make them smaller */
+        nav[role="navigation"] svg,
+        .pagination svg,
+        nav svg {
+            width: 1rem !important;
+            height: 1rem !important;
+            max-width: 1rem !important;
+            max-height: 1rem !important;
+        }
+        
+        /* Mobile responsive pagination */
+        @media (max-width: 576px) {
+            .pagination {
+                font-size: 0.75rem;
+                gap: 0.15rem;
+            }
+            .pagination .page-link {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.75rem;
+            }
+            .pagination .page-item:first-child .page-link,
+            .pagination .page-item:last-child .page-link {
+                font-size: 0.85rem;
+                padding: 0.25rem 0.45rem;
+            }
+            /* Even smaller arrows on mobile */
+            nav[role="navigation"] svg,
+            .pagination svg,
+            nav svg {
+                width: 0.75rem !important;
+                height: 0.75rem !important;
+                max-width: 0.75rem !important;
+                max-height: 0.75rem !important;
+            }
+        }
     </style>
 </head>
 <body>

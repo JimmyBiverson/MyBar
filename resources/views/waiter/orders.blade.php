@@ -133,10 +133,10 @@
                                         <i class="fas fa-credit-card me-1"></i> Pay Now
                                     </button>
                                 </template>
-                                <template x-if="order.bill_requested">
-                                    <span class="badge" :class="order.payment_status === 'paid' ? 'bg-success' : 'bg-warning text-dark'">
-                                        <i class="fas" :class="order.payment_status === 'paid' ? 'fa-check-circle' : 'fa-clock'"></i>
-                                        <span x-text="order.payment_status === 'paid' ? ' Paid' : ' Bill Pending'"></span>
+                                <template x-if="order.status !== 'cancelled' && order.status !== 'completed'">
+                                    <span class="badge" :class="paymentStatusBadgeClass(order)">
+                                        <i class="fas" :class="paymentStatusIcon(order)"></i>
+                                        <span x-text="paymentStatusLabel(order)"></span>
                                     </span>
                                 </template>
                             </div>
@@ -166,7 +166,10 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-credit-card me-2"></i>Process Payment</h5>
+                    <div>
+                        <h5 class="modal-title mb-1"><i class="fas fa-credit-card me-2"></i>Process Payment</h5>
+                        <small class="text-muted" x-text="'Processing: ' + (currentUserName || 'N/A')"></small>
+                    </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -271,6 +274,7 @@
             mobileProvider: 'mtn',
             paymentReference: '',
             amountReceived: 0,
+            currentUserName: @json(auth()->user()->display_name ?? auth()->user()->name),
             newOrder: {
                 table_id: '',
                 customer_name: '',
@@ -317,6 +321,21 @@
             progressBarClass(progress) {
                 const classes = {1: 'bg-secondary', 2: 'bg-info', 3: 'bg-warning', 4: 'bg-success', 5: 'bg-dark'};
                 return classes[progress] || 'bg-secondary';
+            },
+            paymentStatusBadgeClass(order) {
+                if (order.payment_status === 'paid') return 'bg-success';
+                if (order.bill_requested) return 'bg-warning text-dark';
+                return 'bg-secondary';
+            },
+            paymentStatusIcon(order) {
+                if (order.payment_status === 'paid') return 'fa-check-circle';
+                if (order.bill_requested) return 'fa-clock';
+                return 'fa-hourglass';
+            },
+            paymentStatusLabel(order) {
+                if (order.payment_status === 'paid') return ' Paid';
+                if (order.bill_requested) return ' Bill Pending';
+                return ' Not Billed';
             },
             addItem() { this.newOrder.items.push({ product_id: '', qty: 1 }); },
             removeItem(i) { if (this.newOrder.items.length > 1) this.newOrder.items.splice(i, 1); },
@@ -388,12 +407,21 @@
                 }
             },
             async requestBill(id) {
-                await fetch('{{ route('waiter.orders.request-bill') }}', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                    body: JSON.stringify({ order_id: id })
-                });
-                Swal.fire({ icon: 'success', title: 'Bill Requested', text: 'The cashier has been notified' });
+                try {
+                    const resp = await fetch('{{ route('waiter.orders.request-bill') }}', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+                        body: JSON.stringify({ order_id: id })
+                    });
+                    const data = await resp.json();
+                    if (data.success) {
+                        Swal.fire({ icon: 'success', title: 'Bill Requested', text: 'Bill has been generated' });
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Failed to request bill' });
+                    }
+                } catch(e) {
+                    Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to request bill' });
+                }
                 await this.fetchOrders();
             },
             get changeDue() {
@@ -483,7 +511,13 @@
                         Swal.fire({ icon: 'error', title: 'Payment Failed', text: data.message || 'Something went wrong' });
                     }
                 } catch(e) {
-                    Swal.fire({ icon: 'error', title: 'Error', text: 'Payment request failed' });
+                    let msg = 'Payment request failed';
+                    if (e.response && e.response.data && e.response.data.message) {
+                        msg = e.response.data.message;
+                    } else if (e.message) {
+                        msg = e.message;
+                    }
+                    Swal.fire({ icon: 'error', title: 'Error', text: msg });
                 }
             },
             async showReceipt(billId, receiptNo) {

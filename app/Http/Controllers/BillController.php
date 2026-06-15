@@ -25,6 +25,10 @@ class BillController extends Controller
             $query->where('payment_status', $request->payment_status);
         }
 
+        if ($request->processed_by_role) {
+            $query->where('processed_by_role', $request->processed_by_role);
+        }
+
         if ($request->search) {
             $query->where('bill_number', 'like', "%{$request->search}%");
         }
@@ -35,7 +39,16 @@ class BillController extends Controller
 
         $bills = $query->withCount('items')->latest()->paginate(15);
 
-        return view('billing.index', compact('bills'));
+        $todayStats = Bill::whereDate('created_at', today())
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->selectRaw("COUNT(*) as total_count")
+            ->selectRaw("SUM(CASE WHEN processed_by_role = 'waiter' THEN 1 ELSE 0 END) as waiter_count")
+            ->selectRaw("SUM(CASE WHEN processed_by_role = 'waiter' THEN total_amount ELSE 0 END) as waiter_total")
+            ->selectRaw("SUM(CASE WHEN processed_by_role = 'cashier' THEN 1 ELSE 0 END) as cashier_count")
+            ->selectRaw("SUM(CASE WHEN processed_by_role = 'cashier' THEN total_amount ELSE 0 END) as cashier_total")
+            ->first();
+
+        return view('billing.index', compact('bills', 'todayStats'));
     }
 
     public function show(Bill $bill)
