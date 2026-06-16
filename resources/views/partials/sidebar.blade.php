@@ -151,14 +151,37 @@
         </div>
         @endif
 
-        <!-- PWA Install Card -->
-        <div id="pwa-install-card" class="m-3 p-3 rounded text-center border-0 d-none" style="background: rgba(255,255,255,0.05); color: #fff;">
+        <!-- Mobile App Card -->
+        <div class="m-3 p-3 rounded text-center border-0" style="background: rgba(255,255,255,0.05); color: #fff;">
             <i class="fas fa-mobile-alt mb-2" style="font-size: 1.5rem; color: var(--primary);"></i>
-            <h6 class="small fw-semibold mb-1">Get the Mobile App</h6>
-            <p class="x-small text-muted mb-2" style="font-size: 0.75rem; line-height: 1.2;">Access MyBar directly from your home screen for quick offline access!</p>
-            <button id="pwa-install-btn" class="btn btn-sm btn-primary w-100">
-                <i class="fas fa-download me-1"></i> Install App
+            <h6 class="small fw-semibold mb-1">Mobile App</h6>
+            <p class="x-small text-muted mb-2" style="font-size: 0.72rem; line-height: 1.2;">
+                <i class="fas fa-qrcode me-1"></i> Scan to open on your phone
+            </p>
+            <div class="mb-2 d-flex justify-content-center">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data={{ urlencode(url('/')) }}"
+                     alt="QR Code" style="width:90px;height:90px;border-radius:6px;">
+            </div>
+            <a href="{{ route('apk.download') }}" class="btn btn-sm btn-primary w-100">
+                <i class="fas fa-download me-1"></i> Download Android App
+            </a>
+        </div>
+
+        <!-- Desktop App Card -->
+        <div id="pwa-install-card" class="m-3 p-3 rounded border-0" style="background: rgba(255,255,255,0.05); color: #fff;">
+            <div class="text-center mb-2">
+                <i class="fas fa-laptop" style="font-size: 1.3rem; color: var(--primary);"></i>
+            </div>
+            <h6 class="small fw-semibold text-center mb-1">Desktop App</h6>
+            <p class="x-small text-muted text-center mb-2" style="font-size: 0.72rem; line-height: 1.2;">
+                Install as app or create a shortcut for one-click access.
+            </p>
+            <button id="pwa-install-btn" class="btn btn-sm btn-outline-light w-100 mb-1" style="display:none;">
+                <i class="fas fa-download me-1"></i> Install as App
             </button>
+            <a href="{{ route('desktop.shortcut') }}" class="btn btn-sm btn-outline-light w-100">
+                <i class="fas fa-external-link-alt me-1"></i> Create Desktop Shortcut
+            </a>
         </div>
 
         <!-- Offline Sync Status Card -->
@@ -256,7 +279,8 @@
         .sidebar::-webkit-scrollbar { width: 3px; }
         .sidebar::-webkit-scrollbar-thumb { background: #3a3a50; border-radius: 3px; }
         .sidebar-collapsed #pwa-install-card,
-        .sidebar-collapsed #offline-sync-card {
+        .sidebar-collapsed #offline-sync-card,
+        .sidebar-collapsed .sidebar-menu > div.m-3:first-of-type {
             display: none !important;
         }
     </style>

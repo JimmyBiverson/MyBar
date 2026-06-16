@@ -26,9 +26,9 @@
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
                                 <td>{{ $item->product->name ?? $item->product_name ?? 'N/A' }}</td>
-                                <td class="text-end">{{ number_format($item->price, 0) }}</td>
+                                <td class="text-end">{{ formatCurrency($item->price) }}</td>
                                 <td class="text-center">{{ $item->qty }}</td>
-                                <td class="text-end">{{ number_format($item->subtotal ?? ($item->price * $item->qty), 0) }}</td>
+                                <td class="text-end">{{ formatCurrency($item->subtotal ?? ($item->price * $item->qty)) }}</td>
                             </tr>
                             @empty
                             <tr><td colspan="5" class="text-center text-muted py-3">No items</td></tr>
@@ -45,22 +45,22 @@
             <div class="card-header"><i class="fas fa-info-circle me-2"></i>Payment Info</div>
             <div class="card-body">
                 <table class="table table-sm">
-                    <tr><td>Subtotal</td><td class="text-end">{{ number_format($bill->subtotal ?? $bill->total, 0) }}</td></tr>
+                    <tr><td>Subtotal</td><td class="text-end">{{ formatCurrency($bill->subtotal ?? $bill->total) }}</td></tr>
                     @if($bill->discount > 0)
-                    <tr><td>Discount</td><td class="text-end text-danger">-{{ number_format($bill->discount, 0) }}</td></tr>
+                    <tr><td>Discount</td><td class="text-end text-danger">-{{ formatCurrency($bill->discount) }}</td></tr>
                     @endif
 
                     @if($bill->tax_amount > 0)
-                    <tr><td>{{ \App\Models\Setting::get('tax_label', 'VAT') }}</td><td class="text-end">{{ number_format($bill->tax_amount, 0) }}</td></tr>
+                    <tr><td>{{ \App\Models\Setting::get('tax_label', 'VAT') }}</td><td class="text-end">{{ formatCurrency($bill->tax_amount) }}</td></tr>
                     @endif
 
                     @if($bill->service_charge > 0)
-                    <tr><td>Service Charge</td><td class="text-end">{{ number_format($bill->service_charge, 0) }}</td></tr>
+                    <tr><td>Service Charge</td><td class="text-end">{{ formatCurrency($bill->service_charge) }}</td></tr>
                     @endif
-                    <tr class="fw-bold"><td>Total</td><td class="text-end text-primary fs-5">{{ number_format($bill->total, 0) }}</td></tr>
-                    <tr><td>Paid</td><td class="text-end text-success">{{ number_format($bill->paid, 0) }}</td></tr>
+                    <tr class="fw-bold"><td>Total</td><td class="text-end text-primary fs-5">{{ formatCurrency($bill->total) }}</td></tr>
+                    <tr><td>Paid</td><td class="text-end text-success">{{ formatCurrency($bill->paid) }}</td></tr>
                     @if($bill->balance > 0)
-                    <tr><td>Balance</td><td class="text-end text-danger">{{ number_format($bill->balance, 0) }}</td></tr>
+                    <tr><td>Balance</td><td class="text-end text-danger">{{ formatCurrency($bill->balance) }}</td></tr>
                     @endif
                 </table>
                 <hr>

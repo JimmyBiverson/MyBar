@@ -47,7 +47,7 @@
                                 <select class="form-select form-select-sm" name="items[0][product_id]" required>
                                     <option value="">Select Product</option>
                                     @foreach($products ?? [] as $product)
-                                        <option value="{{ $product->id }}">{{ $product->name }} ({{ number_format($product->selling_price) }})</option>
+                                        <option value="{{ $product->id }}">{{ $product->name }} ({{ formatCurrency($product->selling_price) }})</option>
                                     @endforeach
                                 </select>
                             </td>

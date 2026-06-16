@@ -15,15 +15,20 @@ class Setting extends Model
         'group_name',
     ];
 
+    protected static array $settingsCache = [];
+
     public static function get(string $key, mixed $default = null): mixed
     {
-        static $cache = [];
-
-        if (!isset($cache[$key])) {
+        if (!isset(static::$settingsCache[$key])) {
             $setting = static::where('key', $key)->first();
-            $cache[$key] = $setting ? $setting->value : $default;
+            static::$settingsCache[$key] = $setting ? $setting->value : $default;
         }
 
-        return $cache[$key];
+        return static::$settingsCache[$key];
+    }
+
+    public static function clearCache(): void
+    {
+        static::$settingsCache = [];
     }
 }

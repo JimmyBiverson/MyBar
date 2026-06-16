@@ -8,7 +8,7 @@
             <div class="col-md-3 col-6">
                 <div class="stat-box text-center">
                     <small class="text-muted">Total Sales</small>
-                    <h4 class="mb-0 text-primary">{{ number_format($data['total_sales'] ?? 0) }}</h4>
+                    <h4 class="mb-0 text-primary">{{ formatCurrency($data['total_sales'] ?? 0) }}</h4>
                 </div>
             </div>
             <div class="col-md-3 col-6">
@@ -20,7 +20,7 @@
             <div class="col-md-3 col-6">
                 <div class="stat-box text-center">
                     <small class="text-muted">Avg. Per Transaction</small>
-                    <h4 class="mb-0 text-success">{{ number_format($data['average_per_transaction'] ?? 0) }}</h4>
+                    <h4 class="mb-0 text-success">{{ formatCurrency($data['average_per_transaction'] ?? 0) }}</h4>
                 </div>
             </div>
             <div class="col-md-3 col-6">
@@ -35,14 +35,14 @@
             <div class="col-md-6 col-6">
                 <div class="stat-box text-center" style="background:#fbe9e7">
                     <small class="text-muted">Total Expenses</small>
-                    <h4 class="mb-0 text-danger">{{ number_format($data['total_expenses'] ?? 0) }}</h4>
+                    <h4 class="mb-0 text-danger">{{ formatCurrency($data['total_expenses'] ?? 0) }}</h4>
                 </div>
             </div>
             <div class="col-md-6 col-6">
                 <div class="stat-box text-center" style="background:{{ ($data['net_profit'] ?? 0) >= 0 ? '#e8f5e9' : '#fbe9e7' }}">
                     <small class="text-muted">Net Profit / Loss</small>
                     <h4 class="mb-0" style="color:{{ ($data['net_profit'] ?? 0) >= 0 ? '#2e7d32' : '#c62828' }}">
-                        {{ number_format($data['net_profit'] ?? 0) }}
+                        {{ formatCurrency($data['net_profit'] ?? 0) }}
                     </h4>
                 </div>
             </div>
@@ -54,7 +54,7 @@
             <div class="col-md-3 col-6">
                 <div class="border rounded p-2 text-center">
                     <small class="text-muted">{{ ucfirst($pm->payment_method) }}</small>
-                    <h5 class="mb-0">{{ number_format((float) $pm->total, 0) }}</h5>
+                    <h5 class="mb-0">{{ formatCurrency((float) $pm->total) }}</h5>
                     <small class="text-muted">{{ $pm->count }} transactions</small>
                 </div>
             </div>
@@ -81,8 +81,8 @@
                         <td>#{{ $bill->invoice_no ?? $bill->id }}</td>
                         <td>{{ $bill->customer->name ?? 'Walk-in' }}</td>
                         <td>{{ $bill->items_count }}</td>
-                        <td class="text-end">{{ number_format((float) $bill->total_amount, 0) }}</td>
-                        <td class="text-end">{{ number_format((float) $bill->paid_amount, 0) }}</td>
+                        <td class="text-end">{{ formatCurrency((float) $bill->total_amount) }}</td>
+                        <td class="text-end">{{ formatCurrency((float) $bill->paid_amount) }}</td>
                     </tr>
                     @empty
                     <tr><td colspan="6" class="text-center py-3 text-muted">No transactions found</td></tr>

@@ -40,8 +40,8 @@
                         <td class="fw-medium">{{ $purchase->reference_no ?? '#' . $purchase->id }}</td>
                         <td>{{ $purchase->supplier->name ?? 'N/A' }}</td>
                         <td>{{ $purchase->items_count ?? $purchase->items()->count() }}</td>
-                        <td>{{ number_format($purchase->total ?? 0) }}</td>
-                        <td>{{ number_format($purchase->paid ?? 0) }}</td>
+                        <td>{{ formatCurrency($purchase->total ?? 0) }}</td>
+                        <td>{{ formatCurrency($purchase->paid ?? 0) }}</td>
                         <td>
                             <span class="badge bg-{{ $purchase->status === 'received' ? 'success' : ($purchase->status === 'pending' ? 'warning' : 'danger') }}">
                                 {{ ucfirst($purchase->status) }}

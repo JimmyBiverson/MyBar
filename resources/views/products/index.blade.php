@@ -45,8 +45,8 @@
                     <tr>
                         <td class="fw-medium">{{ $product->name }}</td>
                         <td>{{ $product->category->name ?? 'N/A' }}</td>
-                        <td>{{ number_format($product->selling_price, 0) }}</td>
-                        <td>{{ number_format($product->cost_price, 0) }}</td>
+                        <td>{{ formatCurrency($product->selling_price) }}</td>
+                        <td>{{ formatCurrency($product->cost_price) }}</td>
                         <td class="text-center">
                             <span class="badge bg-{{ $product->stock_status === 'low' ? 'danger' : ($product->stock_status === 'medium' ? 'warning' : 'success') }}">
                                 {{ $product->current_stock }}

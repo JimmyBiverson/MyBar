@@ -23,7 +23,10 @@ use App\Http\Controllers\TableController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WaiterController;
+use App\Http\Controllers\AppController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/manifest.json', [AppController::class, 'manifest'])->name('manifest');
 
 Route::get('/offline', function () {
     return view('offline');
@@ -135,8 +138,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/{bill}', [BillController::class, 'show'])->name('show');
         Route::get('/{bill}/print', [BillController::class, 'print'])->name('print');
         Route::get('/{bill}/pdf', [BillController::class, 'exportPdf'])->name('pdf');
-        Route::get('/{bill}/receipt-content', [BillController::class, 'receiptContent'])->name('receipt-content');
     });
+
+    Route::get('/billing/{bill}/receipt-content', [BillController::class, 'receiptContent'])
+        ->name('billing.receipt-content')
+        ->middleware('role:Super Admin,Manager,Cashier,Accountant,Waiter');
+
+    Route::get('/apk/download', [AppController::class, 'downloadApk'])->name('apk.download');
+    Route::get('/desktop-shortcut', [AppController::class, 'desktopShortcut'])->name('desktop.shortcut');
 
     Route::prefix('expenses')->name('expenses.')->middleware('role:Super Admin,Manager,Cashier,Accountant')->group(function () {
         Route::get('/', [ExpenseController::class, 'index'])->name('index');

@@ -95,7 +95,7 @@
                     </div>
                     <div class="mt-2 text-center text-muted small">
                         @forelse($paymentMethods ?? [] as $pm)
-                            <span class="badge bg-secondary me-1">{{ ucwords(str_replace('_', ' ', $pm->payment_method)) }}: {{ number_format($pm->total, 0) }}</span>
+                            <span class="badge bg-secondary me-1">{{ ucwords(str_replace('_', ' ', $pm->payment_method)) }}: {{ formatCurrency($pm->total) }}</span>
                         @empty
                             No payments today
                         @endforelse
@@ -103,8 +103,8 @@
                     <hr class="my-2">
                     <div class="text-center small">
                         <div class="fw-semibold mb-1">Processed By</div>
-                        <span class="badge bg-info me-1"><i class="fas fa-user-tie me-1"></i>Waiter: {{ $processorStats->waiter_count ?? 0 }} ({{ number_format($processorStats->waiter_total ?? 0, 0) }})</span>
-                        <span class="badge bg-secondary me-1"><i class="fas fa-cash-register me-1"></i>Cashier: {{ $processorStats->cashier_count ?? 0 }} ({{ number_format($processorStats->cashier_total ?? 0, 0) }})</span>
+                        <span class="badge bg-info me-1"><i class="fas fa-user-tie me-1"></i>Waiter: {{ $processorStats->waiter_count ?? 0 }} ({{ formatCurrency($processorStats->waiter_total ?? 0) }})</span>
+                        <span class="badge bg-secondary me-1"><i class="fas fa-cash-register me-1"></i>Cashier: {{ $processorStats->cashier_count ?? 0 }} ({{ formatCurrency($processorStats->cashier_total ?? 0) }})</span>
                     </div>
                 </div>
             </div>
@@ -210,7 +210,7 @@
                                     <td>{{ $key + 1 }}</td>
                                     <td>{{ $product->product->name ?? $product['name'] ?? 'N/A' }}</td>
                                     <td class="text-end">{{ $product->total_qty ?? $product['total_qty'] ?? 0 }}</td>
-                                    <td class="text-end">{{ number_format($product->total_revenue ?? 0, 0) }}</td>
+                                    <td class="text-end">{{ formatCurrency($product->total_revenue ?? 0) }}</td>
                                 </tr>
                                 @empty
                                 <tr><td colspan="4" class="text-center text-muted py-3">No sales data yet</td></tr>
@@ -241,7 +241,7 @@
                                     <td>{{ $key + 1 }}</td>
                                     <td>{{ $tc->customer->name ?? 'Walk-in' }}</td>
                                     <td class="text-end">{{ $tc->visit_count }}</td>
-                                    <td class="text-end">{{ number_format($tc->total_spent, 0) }}</td>
+                                    <td class="text-end">{{ formatCurrency($tc->total_spent) }}</td>
                                 </tr>
                                 @empty
                                 <tr><td colspan="4" class="text-center text-muted py-3">No customer data this month</td></tr>
@@ -279,7 +279,7 @@
                                     <td>{{ $order->table->name ?? 'Takeaway' }}</td>
                                     <td>{{ $order->waiter->name ?? 'N/A' }}</td>
                                     <td>{{ $order->items_count }}</td>
-                                    <td class="text-end">{{ number_format($order->items->sum('subtotal'), 0) }}</td>
+                                    <td class="text-end">{{ formatCurrency($order->items->sum('subtotal')) }}</td>
                                     <td class="text-center">
                                         @php
                                             $badgeMap = ['pending' => 'secondary', 'confirmed' => 'info', 'preparing' => 'warning', 'ready' => 'primary', 'served' => 'success', 'completed' => 'dark', 'cancelled' => 'danger'];
@@ -336,7 +336,7 @@
                                         {{ $bill->cashier->name ?? $bill->waiter->name ?? 'N/A' }}
                                         <span class="badge bg-{{ $bill->processed_by_role === 'waiter' ? 'info' : 'secondary' }}">{{ ucfirst($bill->processed_by_role ?? 'cashier') }}</span>
                                     </td>
-                                    <td class="text-end">{{ number_format($bill->total_amount ?? $bill->total ?? 0) }}</td>
+                                    <td class="text-end">{{ formatCurrency($bill->total_amount ?? $bill->total ?? 0) }}</td>
                                     <td class="text-end"><small>{{ $bill->created_at->format('d M Y H:i') }}</small></td>
                                     <td class="text-center">
                                         <span class="badge bg-success">Paid</span>
@@ -360,7 +360,7 @@
                     </div>
                     <div class="mt-2 text-center text-muted small">
                         @forelse($categorySales ?? [] as $cs)
-                            <span class="badge bg-secondary me-1">{{ $cs['category'] }}: {{ number_format($cs['total'], 0) }}</span>
+                            <span class="badge bg-secondary me-1">{{ $cs['category'] }}: {{ formatCurrency($cs['total']) }}</span>
                         @empty
                             No sales data this month
                         @endforelse

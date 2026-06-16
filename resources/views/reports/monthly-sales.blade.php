@@ -8,7 +8,7 @@
             <div class="col-md-4 col-6">
                 <div class="stat-box text-center">
                     <small class="text-muted">Total Sales</small>
-                    <h4 class="mb-0 text-primary">{{ number_format($data['total_sales'] ?? 0) }}</h4>
+                    <h4 class="mb-0 text-primary">{{ formatCurrency($data['total_sales'] ?? 0) }}</h4>
                 </div>
             </div>
             <div class="col-md-4 col-6">
@@ -20,7 +20,7 @@
             <div class="col-md-4 col-6">
                 <div class="stat-box text-center">
                     <small class="text-muted">Avg. Daily Sales</small>
-                    <h4 class="mb-0 text-success">{{ number_format($data['average_daily'] ?? 0) }}</h4>
+                    <h4 class="mb-0 text-success">{{ formatCurrency($data['average_daily'] ?? 0) }}</h4>
                 </div>
             </div>
         </div>
@@ -29,14 +29,14 @@
             <div class="col-md-6 col-6">
                 <div class="stat-box text-center" style="background:#fbe9e7">
                     <small class="text-muted">Total Expenses</small>
-                    <h4 class="mb-0 text-danger">{{ number_format($data['total_expenses'] ?? 0) }}</h4>
+                    <h4 class="mb-0 text-danger">{{ formatCurrency($data['total_expenses'] ?? 0) }}</h4>
                 </div>
             </div>
             <div class="col-md-6 col-6">
                 <div class="stat-box text-center" style="background:{{ ($data['net_profit'] ?? 0) >= 0 ? '#e8f5e9' : '#fbe9e7' }}">
                     <small class="text-muted">Net Profit / Loss</small>
                     <h4 class="mb-0" style="color:{{ ($data['net_profit'] ?? 0) >= 0 ? '#2e7d32' : '#c62828' }}">
-                        {{ number_format($data['net_profit'] ?? 0) }}
+                        {{ formatCurrency($data['net_profit'] ?? 0) }}
                     </h4>
                 </div>
             </div>
@@ -51,7 +51,7 @@
                     @forelse($data['monthly_data'] ?? [] as $row)
                     <tr>
                         <td>{{ $row->date ?? 'N/A' }}</td>
-                        <td class="text-end">{{ number_format((float) ($row->total_sum ?? $row->total ?? 0), 0) }}</td>
+                        <td class="text-end">{{ formatCurrency((float) ($row->total_sum ?? $row->total ?? 0)) }}</td>
                     </tr>
                     @empty
                     <tr><td colspan="2" class="text-center py-3 text-muted">No data for this month</td></tr>
@@ -61,7 +61,7 @@
                 <tfoot>
                     <tr class="fw-bold">
                         <td>TOTAL</td>
-                        <td class="text-end">{{ number_format(collect($data['monthly_data'])->sum(fn($r) => $r->total_sum ?? $r->total ?? 0), 0) }}</td>
+                        <td class="text-end">{{ formatCurrency(collect($data['monthly_data'])->sum(fn($r) => $r->total_sum ?? $r->total ?? 0)) }}</td>
                     </tr>
                 </tfoot>
                 @endif

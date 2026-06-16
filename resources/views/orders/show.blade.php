@@ -31,9 +31,9 @@
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
                                 <td>{{ $item->product->name ?? 'N/A' }}</td>
-                                <td class="text-end">{{ number_format($item->price, 0) }}</td>
+                                <td class="text-end">{{ formatCurrency($item->price) }}</td>
                                 <td class="text-center">{{ $item->quantity }}</td>
-                                <td class="text-end">{{ number_format($item->subtotal, 0) }}</td>
+                                <td class="text-end">{{ formatCurrency($item->subtotal) }}</td>
                                 <td class="text-center">
                                     <span class="badge bg-{{ $item->status === 'completed' ? 'success' : ($item->status === 'preparing' ? 'info' : 'warning') }}">
                                         {{ ucfirst($item->status) }}
@@ -68,7 +68,7 @@
                 <div class="mb-2"><strong>Notes:</strong> {{ $order->notes }}</div>
                 @endif
                 <hr>
-                <div class="mb-0"><strong>Total:</strong> <span class="fs-5 text-primary">{{ number_format($order->items->sum('subtotal'), 0) }}</span></div>
+                <div class="mb-0"><strong>Total:</strong> <span class="fs-5 text-primary">{{ formatCurrency($order->items->sum('subtotal')) }}</span></div>
             </div>
         </div>
     </div>

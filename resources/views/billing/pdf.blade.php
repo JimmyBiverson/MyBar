@@ -38,26 +38,26 @@
             <tr>
                 <td>{{ $item->product->name ?? 'N/A' }}</td>
                 <td class="text-center">{{ $item->quantity }}</td>
-                <td class="text-right">{{ number_format($item->price, 0) }}</td>
-                <td class="text-right">{{ number_format($item->subtotal, 0) }}</td>
+                <td class="text-right">{{ formatCurrency($item->price) }}</td>
+                <td class="text-right">{{ formatCurrency($item->subtotal) }}</td>
             </tr>
             @endforeach
         </tbody>
     </table>
     <table class="summary">
-        <tr><td><strong>Subtotal</strong></td><td class="text-right">{{ number_format($bill->subtotal ?? $bill->total_amount, 0) }}</td></tr>
+        <tr><td><strong>Subtotal</strong></td><td class="text-right">{{ formatCurrency($bill->subtotal ?? $bill->total_amount) }}</td></tr>
         @if($bill->discount > 0)
-        <tr><td>Discount</td><td class="text-right">-{{ number_format($bill->discount, 0) }}</td></tr>
+        <tr><td>Discount</td><td class="text-right">-{{ formatCurrency($bill->discount) }}</td></tr>
         @endif
 
         @if($bill->tax_amount > 0)
-        <tr><td>{{ \App\Models\Setting::get('tax_label', 'VAT') }}</td><td class="text-right">{{ number_format($bill->tax_amount, 0) }}</td></tr>
+        <tr><td>{{ \App\Models\Setting::get('tax_label', 'VAT') }}</td><td class="text-right">{{ formatCurrency($bill->tax_amount) }}</td></tr>
         @endif
 
         @if($bill->service_charge > 0)
-        <tr><td>Service Charge</td><td class="text-right">{{ number_format($bill->service_charge, 0) }}</td></tr>
+        <tr><td>Service Charge</td><td class="text-right">{{ formatCurrency($bill->service_charge) }}</td></tr>
         @endif
-        <tr class="total"><td><strong>Total</strong></td><td class="text-right"><strong>{{ number_format($bill->total_amount, 0) }}</strong></td></tr>
+        <tr class="total"><td><strong>Total</strong></td><td class="text-right"><strong>{{ formatCurrency($bill->total_amount) }}</strong></td></tr>
     </table>
     <div class="footer">
         <p>Thank you for your business!</p>

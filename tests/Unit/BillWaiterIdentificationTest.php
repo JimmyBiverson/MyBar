@@ -25,6 +25,8 @@ class BillWaiterIdentificationTest extends TestCase
     protected User $waiter;
     protected User $cashier;
     protected Branch $branch;
+    protected Role $waiterRole;
+    protected Role $cashierRole;
 
     protected function setUp(): void
     {
@@ -33,14 +35,14 @@ class BillWaiterIdentificationTest extends TestCase
         $this->branch = Branch::factory()->create();
         
         // Create or retrieve roles
-        $waiterRole = Role::where('name', 'Waiter')->first();
-        if (!$waiterRole) {
-            $waiterRole = Role::create(['name' => 'Waiter', 'description' => 'Waiter']);
+        $this->waiterRole = Role::where('name', 'Waiter')->first();
+        if (!$this->waiterRole) {
+            $this->waiterRole = Role::create(['name' => 'Waiter', 'description' => 'Waiter']);
         }
         
-        $cashierRole = Role::where('name', 'Cashier')->first();
-        if (!$cashierRole) {
-            $cashierRole = Role::create(['name' => 'Cashier', 'description' => 'Cashier']);
+        $this->cashierRole = Role::where('name', 'Cashier')->first();
+        if (!$this->cashierRole) {
+            $this->cashierRole = Role::create(['name' => 'Cashier', 'description' => 'Cashier']);
         }
         
         // Create users with explicit role_id
@@ -48,7 +50,7 @@ class BillWaiterIdentificationTest extends TestCase
             'name' => 'John Smith',
             'email' => 'john@test.com',
             'password' => bcrypt('password'),
-            'role_id' => $waiterRole->id,
+            'role_id' => $this->waiterRole->id,
             'branch_id' => $this->branch->id,
             'employee_id' => 'EMP001',
         ]);
@@ -57,18 +59,18 @@ class BillWaiterIdentificationTest extends TestCase
             'name' => 'Jane Doe',
             'email' => 'jane@test.com',
             'password' => bcrypt('password'),
-            'role_id' => $cashierRole->id,
+            'role_id' => $this->cashierRole->id,
             'branch_id' => $this->branch->id,
             'employee_id' => 'CASH001',
         ]);
         
         // Create a bill with explicit waiter and branch
-        $order = \App\Models\Order::factory()->create([
+        $order = Order::factory()->create([
             'waiter_id' => $this->waiter->id,
             'branch_id' => $this->branch->id,
         ]);
         
-        $customer = \App\Models\Customer::factory()->create([
+        $customer = Customer::factory()->create([
             'branch_id' => $this->branch->id,
         ]);
         
@@ -91,13 +93,11 @@ class BillWaiterIdentificationTest extends TestCase
         ]);
     }
 
-    /**
-     * Test: getProcessorNameAttribute includes employee ID
-     * 
-     * Validates: Requirements 1.1, 2.1
-     * The processor name should include the employee ID when available.
-     */
-    public function test_processor_name_includes_employee_id()
+    private function createBill($waiter, $cashier = null, $processedByRole = 'waiter')
+    {
+        $order = Order::factory()->create([
+            'waiter_id' => $waiter->id,
+            'branch_id' =processor_name_includes_employee_id()
     {
         $processorName = $this->bill->getProcessorNameAttribute();
         

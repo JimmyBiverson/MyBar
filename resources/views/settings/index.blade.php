@@ -3,7 +3,7 @@
 @section('page-title', 'Settings')
 
 @section('content')
-<div x-data="{ activeTab: '{{ auth()->user()->isManager() ? 'inventory' : 'general' }}' }">
+<div x-data="settingsForm()">
     <ul class="nav nav-tabs mb-4" role="tablist">
         @if(!auth()->user()->isManager())
         <li class="nav-item" role="presentation">
@@ -58,25 +58,62 @@
                             <label class="form-label">Business Address</label>
                             <input type="text" class="form-control" name="business_address" value="{{ old('business_address', $settings['business_address'] ?? '') }}">
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">Currency</label>
-                            <select class="form-select" name="currency">
+                            <select class="form-select" name="currency" x-model="selectedCurrency" @change="onCurrencyChange()">
                                 <option value="UGX" {{ ($settings['currency'] ?? 'UGX') === 'UGX' ? 'selected' : '' }}>UGX - Uganda Shilling</option>
                                 <option value="KES" {{ ($settings['currency'] ?? '') === 'KES' ? 'selected' : '' }}>KES - Kenyan Shilling</option>
                                 <option value="TZS" {{ ($settings['currency'] ?? '') === 'TZS' ? 'selected' : '' }}>TZS - Tanzanian Shilling</option>
                                 <option value="USD" {{ ($settings['currency'] ?? '') === 'USD' ? 'selected' : '' }}>USD - US Dollar</option>
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <label class="form-label">Currency Symbol</label>
+                            <input type="text" class="form-control" name="currency_symbol" x-model="selectedSymbol" value="{{ old('currency_symbol', $settings['currency_symbol'] ?? ($settings['currency'] ?? 'UGX')) }}">
+                        </div>
+                        <div class="col-md-3">
                             <label class="form-label">Currency Position</label>
                             <select class="form-select" name="currency_position">
-                                <option value="before" {{ ($settings['currency_position'] ?? 'before') === 'before' ? 'selected' : '' }}>Before Amount (UGX 1,000)</option>
-                                <option value="after" {{ ($settings['currency_position'] ?? '') === 'after' ? 'selected' : '' }}>After Amount (1,000 UGX)</option>
+                                <option value="before" {{ ($settings['currency_position'] ?? 'before') === 'before' ? 'selected' : '' }}>Before Amount</option>
+                                <option value="after" {{ ($settings['currency_position'] ?? '') === 'after' ? 'selected' : '' }}>After Amount</option>
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">Decimal Digits</label>
                             <input type="number" class="form-control" name="decimal_digits" value="{{ old('decimal_digits', $settings['decimal_digits'] ?? 0) }}" min="0" max="4">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Thousand Separator</label>
+                            <select class="form-select" name="thousand_separator">
+                                <option value="," {{ ($settings['thousand_separator'] ?? ',') === ',' ? 'selected' : '' }}>Comma (,)</option>
+                                <option value="." {{ ($settings['thousand_separator'] ?? '') === '.' ? 'selected' : '' }}>Period (.)</option>
+                                <option value=" " {{ ($settings['thousand_separator'] ?? '') === ' ' ? 'selected' : '' }}>Space ( )</option>
+                                <option value="" {{ ($settings['thousand_separator'] ?? '') === '' ? 'selected' : '' }}>None</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Decimal Separator</label>
+                            <select class="form-select" name="decimal_separator">
+                                <option value="." {{ ($settings['decimal_separator'] ?? '.') === '.' ? 'selected' : '' }}>Period (.)</option>
+                                <option value="," {{ ($settings['decimal_separator'] ?? '') === ',' ? 'selected' : '' }}>Comma (,)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Currency Code (ISO)</label>
+                            <input type="text" class="form-control" value="{{ $settings['currency'] ?? 'UGX' }}" disabled>
+                            <small class="text-muted">Set via Currency dropdown above</small>
+                        </div>
+                        <div class="col-12" x-show="showConversion" x-transition:enter="fade-in">
+                            <div class="alert alert-warning mb-2 py-2">
+                                <i class="fas fa-exchange-alt me-1"></i> <strong>Currency conversion detected!</strong> You changed from <strong x-text="originalCurrency"></strong> to <strong x-text="selectedCurrency"></strong>.
+                            </div>
+                            <div class="row g-2 align-items-end">
+                                <div class="col-md-4">
+                                    <label class="form-label">Conversion Rate (1 <span x-text="originalCurrency"></span> = ? <span x-text="selectedCurrency"></span>)</label>
+                                    <input type="number" class="form-control" name="conversion_rate" step="0.00000001" min="0" value="1" placeholder="e.g. 0.00027 for UGX → USD">
+                                    <small class="text-muted">Leave at 1 to keep values unchanged. Set to convert all stored amounts.</small>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Time Zone</label>
@@ -329,6 +366,32 @@
     </form>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    function settingsForm() {
+        return {
+            activeTab: '{{ auth()->user()->isManager() ? "inventory" : "general" }}',
+            originalCurrency: '{{ $settings["currency"] ?? "UGX" }}',
+            selectedCurrency: '{{ $settings["currency"] ?? "UGX" }}',
+            selectedSymbol: '{{ $settings["currency_symbol"] ?? ($settings["currency"] ?? "UGX") }}',
+            showConversion: false,
+            symbolMap: {
+                'UGX': 'UGX',
+                'KES': 'KES',
+                'TZS': 'TZS',
+                'USD': '$',
+            },
+            onCurrencyChange() {
+                this.showConversion = this.selectedCurrency !== this.originalCurrency;
+                if (this.symbolMap[this.selectedCurrency]) {
+                    this.selectedSymbol = this.symbolMap[this.selectedCurrency];
+                }
+            }
+        }
+    }
+</script>
+@endpush
 
 @push('styles')
 <style>

@@ -24,9 +24,9 @@
     </div>
 
     <table class="summary" style="width:auto;margin:0 auto 15px;">
-        <tr><td><strong>Total Sales:</strong></td><td class="text-right">UGX {{ number_format($sales ?? 0, 0) }}</td></tr>
-        <tr><td><strong>Total Expenses:</strong></td><td class="text-right">UGX {{ number_format($expenses ?? 0, 0) }}</td></tr>
-        <tr><td><strong>Net:</strong></td><td class="text-right">UGX {{ number_format(($sales ?? 0) - ($expenses ?? 0), 0) }}</td></tr>
+        <tr><td><strong>Total Sales:</strong></td><td class="text-right">{{ formatCurrency($sales ?? 0) }}</td></tr>
+        <tr><td><strong>Total Expenses:</strong></td><td class="text-right">{{ formatCurrency($expenses ?? 0) }}</td></tr>
+        <tr><td><strong>Net:</strong></td><td class="text-right">{{ formatCurrency(($sales ?? 0) - ($expenses ?? 0)) }}</td></tr>
     </table>
 
     @if(count($dailyData ?? []) > 0)
@@ -39,12 +39,12 @@
             @foreach($dailyData as $d)
             <tr>
                 <td>{{ $d->date }}</td>
-                <td class="text-right">UGX {{ number_format((float) ($d->total_sum ?? $d->total ?? 0), 0) }}</td>
+                <td class="text-right">{{ formatCurrency((float) ($d->total_sum ?? $d->total ?? 0)) }}</td>
             </tr>
             @endforeach
             <tr class="total-row">
                 <td>TOTAL</td>
-                <td class="text-right">UGX {{ number_format($dailyData->sum(fn($r) => $r->total_sum ?? $r->total ?? 0), 0) }}</td>
+                <td class="text-right">{{ formatCurrency($dailyData->sum(fn($r) => $r->total_sum ?? $r->total ?? 0)) }}</td>
             </tr>
         </tbody>
     </table>

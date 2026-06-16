@@ -17,13 +17,13 @@
             <div class="col-md-3 col-6">
                 <div class="stat-box text-center">
                     <small class="text-muted">Total Stock Value</small>
-                    <h4 class="mb-0 text-primary">{{ number_format($data['total_value'] ?? 0) }}</h4>
+                    <h4 class="mb-0 text-primary">{{ formatCurrency($data['total_value'] ?? 0) }}</h4>
                 </div>
             </div>
             <div class="col-md-3 col-6">
                 <div class="stat-box text-center">
                     <small class="text-muted">Avg. Cost Price</small>
-                    <h4 class="mb-0">{{ number_format($data['average_cost'] ?? 0) }}</h4>
+                    <h4 class="mb-0">{{ formatCurrency($data['average_cost'] ?? 0) }}</h4>
                 </div>
             </div>
         </div>
@@ -46,9 +46,9 @@
                         <td class="fw-medium">{{ $product->name }}</td>
                         <td>{{ $product->category->name ?? 'N/A' }}</td>
                         <td class="text-end">{{ $product->current_stock }}</td>
-                        <td class="text-end">{{ number_format((float) $product->cost_price, 0) }}</td>
-                        <td class="text-end">{{ number_format((float) $product->selling_price, 0) }}</td>
-                        <td class="text-end">{{ number_format((float) $product->current_stock * (float) $product->cost_price, 0) }}</td>
+                        <td class="text-end">{{ formatCurrency((float) $product->cost_price) }}</td>
+                        <td class="text-end">{{ formatCurrency((float) $product->selling_price) }}</td>
+                        <td class="text-end">{{ formatCurrency((float) $product->current_stock * (float) $product->cost_price) }}</td>
                         <td>
                             <span class="badge bg-{{ $product->stock_status === 'low' ? 'danger' : ($product->stock_status === 'medium' ? 'warning' : 'success') }}">
                                 {{ ucfirst($product->stock_status) }}

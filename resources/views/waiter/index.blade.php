@@ -36,7 +36,7 @@
                 <div class="card-body d-flex align-items-center justify-content-between py-2">
                     <div>
                         <p class="text-muted mb-0 small">Today's Sales</p>
-                        <h4 class="mb-0 fw-bold">{{ number_format($todaySalesTotal ?? 0, 0) }}</h4>
+                        <h4 class="mb-0 fw-bold">{{ formatCurrency($todaySalesTotal ?? 0) }}</h4>
                     </div>
                     <div class="icon-box bg-success-subtle rounded-circle p-2">
                         <i class="fas fa-money-bill-trend-up text-success"></i>

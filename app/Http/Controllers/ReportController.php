@@ -341,8 +341,8 @@ class ReportController extends Controller
                             $b->invoice_no ?? $b->id,
                             $b->customer->name ?? 'Walk-in',
                             $b->items_count,
-                            number_format((float) $b->total_amount, 0),
-                            number_format((float) $b->paid_amount, 0),
+                            formatCurrency((float) $b->total_amount),
+                            formatCurrency((float) $b->paid_amount),
                         ]);
                     }
                     fputcsv($handle, []);
@@ -350,10 +350,10 @@ class ReportController extends Controller
                     $dailyExpenses = (float) Expense::whereDate('expense_date', $dateFrom)
                         ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                         ->sum('amount');
-                    fputcsv($handle, ['TOTAL SALES', '', '', '', number_format($totalSales, 0), '']);
+                    fputcsv($handle, ['TOTAL SALES', '', '', '', formatCurrency($totalSales), '']);
                     fputcsv($handle, ['TOTAL TRANSACTIONS', $bills->count()]);
-                    fputcsv($handle, ['TOTAL EXPENSES', '', '', '', number_format($dailyExpenses, 0), '']);
-                    fputcsv($handle, ['NET PROFIT / LOSS', '', '', '', number_format($totalSales - $dailyExpenses, 0), '']);
+                    fputcsv($handle, ['TOTAL EXPENSES', '', '', '', formatCurrency($dailyExpenses), '']);
+                    fputcsv($handle, ['NET PROFIT / LOSS', '', '', '', formatCurrency($totalSales - $dailyExpenses), '']);
                     break;
 
                 case 'monthly_sales':
@@ -367,15 +367,15 @@ class ReportController extends Controller
                         ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(total_amount) as total_sum'))
                         ->groupBy('date')->orderBy('date')->get();
                     foreach ($dailyData as $d) {
-                        fputcsv($handle, [$d->date, number_format((float) ($d->total_sum ?? $d->total ?? 0), 0)]);
+                        fputcsv($handle, [$d->date, formatCurrency((float) ($d->total_sum ?? $d->total ?? 0))]);
                     }
                     $monthlyTotalSales = $dailyData->sum(fn($r) => $r->total_sum ?? $r->total ?? 0);
                     $monthlyExpenses = (float) Expense::whereBetween('expense_date', [$month->copy()->startOfMonth(), $month->copy()->endOfMonth()])
                         ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                         ->sum('amount');
-                    fputcsv($handle, ['TOTAL SALES', number_format($monthlyTotalSales, 0)]);
-                    fputcsv($handle, ['TOTAL EXPENSES', number_format($monthlyExpenses, 0)]);
-                    fputcsv($handle, ['NET PROFIT / LOSS', number_format($monthlyTotalSales - $monthlyExpenses, 0)]);
+                    fputcsv($handle, ['TOTAL SALES', formatCurrency($monthlyTotalSales)]);
+                    fputcsv($handle, ['TOTAL EXPENSES', formatCurrency($monthlyExpenses)]);
+                    fputcsv($handle, ['NET PROFIT / LOSS', formatCurrency($monthlyTotalSales - $monthlyExpenses)]);
                     break;
 
                 case 'profit_loss':
@@ -392,11 +392,11 @@ class ReportController extends Controller
                         ->whereBetween('created_at', [$dateFrom, $dateTo])
                         ->when($branchId, fn ($bq) => $bq->where('branch_id', $branchId)))
                         ->sum(DB::raw('bill_items.quantity * (SELECT cost_price FROM products WHERE products.id = bill_items.product_id)'));
-                    fputcsv($handle, ['Total Sales', number_format($totalSales, 0)]);
-                    fputcsv($handle, ['Cost of Goods Sold', number_format($costOfGoods, 0)]);
-                    fputcsv($handle, ['Gross Profit', number_format($totalSales - $costOfGoods, 0)]);
-                    fputcsv($handle, ['Total Expenses', number_format($totalExpenses, 0)]);
-                    fputcsv($handle, ['Net Profit', number_format($totalSales - $costOfGoods - $totalExpenses, 0)]);
+                    fputcsv($handle, ['Total Sales', formatCurrency($totalSales)]);
+                    fputcsv($handle, ['Cost of Goods Sold', formatCurrency($costOfGoods)]);
+                    fputcsv($handle, ['Gross Profit', formatCurrency($totalSales - $costOfGoods)]);
+                    fputcsv($handle, ['Total Expenses', formatCurrency($totalExpenses)]);
+                    fputcsv($handle, ['Net Profit', formatCurrency($totalSales - $costOfGoods - $totalExpenses)]);
                     break;
 
                 case 'inventory':
@@ -412,15 +412,15 @@ class ReportController extends Controller
                             $p->category->name ?? 'N/A',
                             $p->current_stock,
                             $p->reorder_level,
-                            number_format((float) $p->cost_price, 0),
-                            number_format((float) $p->selling_price, 0),
-                            number_format((float) $p->current_stock * (float) $p->cost_price, 0),
+                            formatCurrency((float) $p->cost_price),
+                            formatCurrency((float) $p->selling_price),
+                            formatCurrency((float) $p->current_stock * (float) $p->cost_price),
                             ucfirst($p->stock_status ?? 'unknown'),
                         ]);
                     }
                     fputcsv($handle, []);
                     fputcsv($handle, ['TOTAL PRODUCTS', $products->count()]);
-                    fputcsv($handle, ['TOTAL STOCK VALUE', number_format($products->sum(fn ($p) => (float) $p->current_stock * (float) $p->cost_price), 0)]);
+                    fputcsv($handle, ['TOTAL STOCK VALUE', formatCurrency($products->sum(fn ($p) => (float) $p->current_stock * (float) $p->cost_price))]);
                     break;
 
                 case 'products':
@@ -448,9 +448,9 @@ class ReportController extends Controller
                         fputcsv($handle, [
                             $product->name ?? 'Unknown',
                             (int) $item->total_qty,
-                            number_format($revenue, 0),
-                            number_format($cost, 0),
-                            number_format($profit, 0),
+                            formatCurrency($revenue),
+                            formatCurrency($cost),
+                            formatCurrency($profit),
                             $margin,
                         ]);
                     }

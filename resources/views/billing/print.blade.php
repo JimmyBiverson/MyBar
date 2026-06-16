@@ -45,27 +45,27 @@
             <tr>
                 <td class="item-name">{{ $item->product->name ?? 'N/A' }}</td>
                 <td class="qty">{{ $item->quantity }}</td>
-                <td class="price">{{ number_format($item->subtotal, 0) }}</td>
+                <td class="price">{{ formatCurrency($item->subtotal) }}</td>
             </tr>
             @endforeach
         </tbody>
     </table>
     <div class="divider"></div>
     <table>
-        <tr><td>Subtotal</td><td class="right">{{ number_format($bill->subtotal ?? $bill->total_amount, 0) }}</td></tr>
+        <tr><td>Subtotal</td><td class="right">{{ formatCurrency($bill->subtotal ?? $bill->total_amount) }}</td></tr>
         @if($bill->discount > 0)
-        <tr><td>Discount</td><td class="right">-{{ number_format($bill->discount, 0) }}</td></tr>
+        <tr><td>Discount</td><td class="right">-{{ formatCurrency($bill->discount) }}</td></tr>
         @endif
 
         @if($bill->tax_amount > 0)
-        <tr><td>{{ \App\Models\Setting::get('tax_label', 'VAT') }}</td><td class="right">{{ number_format($bill->tax_amount, 0) }}</td></tr>
+        <tr><td>{{ \App\Models\Setting::get('tax_label', 'VAT') }}</td><td class="right">{{ formatCurrency($bill->tax_amount) }}</td></tr>
         @endif
 
         @if($bill->service_charge > 0)
-        <tr><td>Service Charge</td><td class="right">{{ number_format($bill->service_charge, 0) }}</td></tr>
+        <tr><td>Service Charge</td><td class="right">{{ formatCurrency($bill->service_charge) }}</td></tr>
         @endif
-        <tr class="total-row"><td>Total</td><td class="right grand-total">{{ number_format($bill->total_amount, 0) }}</td></tr>
-        <tr><td>Paid ({{ ucfirst($bill->payment_method ?? 'Cash') }})</td><td class="right">{{ number_format($bill->total_amount, 0) }}</td></tr>
+        <tr class="total-row"><td>Total</td><td class="right grand-total">{{ formatCurrency($bill->total_amount) }}</td></tr>
+        <tr><td>Paid ({{ ucfirst($bill->payment_method ?? 'Cash') }})</td><td class="right">{{ formatCurrency($bill->total_amount) }}</td></tr>
     </table>
     <div class="divider"></div>
     <div class="footer">

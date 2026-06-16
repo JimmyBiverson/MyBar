@@ -46,9 +46,9 @@
                 <td>{{ $prod->name ?? 'N/A' }}</td>
                 <td>{{ $prod->category->name ?? 'N/A' }}</td>
                 <td class="text-right">{{ (int) ($item->total_qty ?? 0) }}</td>
-                <td class="text-right">{{ number_format((float) ($item->total_revenue ?? 0), 0) }}</td>
-                <td class="text-right">{{ number_format((float) ($item->total_cost ?? 0), 0) }}</td>
-                <td class="text-right" style="color: {{ ($item->total_profit ?? 0) >= 0 ? '#2e7d32' : '#c62828' }}">{{ number_format((float) ($item->total_profit ?? 0), 0) }}</td>
+                <td class="text-right">{{ formatCurrency((float) ($item->total_revenue ?? 0)) }}</td>
+                <td class="text-right">{{ formatCurrency((float) ($item->total_cost ?? 0)) }}</td>
+                <td class="text-right" style="color: {{ ($item->total_profit ?? 0) >= 0 ? '#2e7d32' : '#c62828' }}">{{ formatCurrency((float) ($item->total_profit ?? 0)) }}</td>
                 <td class="text-right">{{ $item->margin ?? 0 }}%</td>
             </tr>
             @empty

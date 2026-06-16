@@ -44,16 +44,16 @@
                 <td>{{ $product->category->name ?? 'N/A' }}</td>
                 <td class="text-right">{{ $product->current_stock }}</td>
                 <td class="{{ $product->stock_status ?? '' }}">{{ ucfirst($product->stock_status ?? 'unknown') }}</td>
-                <td class="text-right">UGX {{ number_format((float) $product->cost_price, 0) }}</td>
-                <td class="text-right">UGX {{ number_format((float) $product->selling_price, 0) }}</td>
-                <td class="text-right">UGX {{ number_format((float) $product->current_stock * (float) $product->cost_price, 0) }}</td>
+                <td class="text-right">{{ formatCurrency((float) $product->cost_price) }}</td>
+                <td class="text-right">{{ formatCurrency((float) $product->selling_price) }}</td>
+                <td class="text-right">{{ formatCurrency((float) $product->current_stock * (float) $product->cost_price) }}</td>
             </tr>
             @endforeach
         </tbody>
         <tfoot>
             <tr class="total-row">
                 <td colspan="6" class="text-right">TOTAL STOCK VALUE</td>
-                <td class="text-right">UGX {{ number_format(collect($products)->sum(fn($p) => (float) $p->current_stock * (float) $p->cost_price), 0) }}</td>
+                <td class="text-right">{{ formatCurrency(collect($products)->sum(fn($p) => (float) $p->current_stock * (float) $p->cost_price)) }}</td>
             </tr>
         </tfoot>
     </table>

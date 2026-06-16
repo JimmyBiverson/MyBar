@@ -12,7 +12,7 @@
         <link rel="icon" type="image/x-icon" href="/favicon.ico">
     @endif
 
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="{{ route('manifest') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -263,6 +263,15 @@
     </div>
 
     <script>
+        window.currencySettings = {
+            symbol: '{{ \App\Models\Setting::get('currency_symbol', 'UGX') }}',
+            position: '{{ \App\Models\Setting::get('currency_position', 'before') }}',
+            thousand_separator: '{{ \App\Models\Setting::get('thousand_separator', ',') }}',
+            decimal_separator: '{{ \App\Models\Setting::get('decimal_separator', '.') }}',
+            decimal_digits: {{ (int) \App\Models\Setting::get('decimal_digits', 0) }},
+        };
+    </script>
+    <script>
         // Define caching fallbacks to prevent JavaScript crashes if app.js is not loaded
         window._chartCenterTextCounter = 0; // unique IDs for per-chart center-text plugins
         window.cacheAppData = window.cacheAppData || function(products, categories, settings) {
@@ -440,9 +449,9 @@
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            const installCard = document.getElementById('pwa-install-card');
-            if (installCard) {
-                installCard.classList.remove('d-none');
+            const installBtn = document.getElementById('pwa-install-btn');
+            if (installBtn) {
+                installBtn.style.display = '';
             }
         });
 
@@ -457,10 +466,7 @@
                             console.log('User accepted the install prompt');
                         }
                         deferredPrompt = null;
-                        const installCard = document.getElementById('pwa-install-card');
-                        if (installCard) {
-                            installCard.classList.add('d-none');
-                        }
+                        installBtn.style.display = 'none';
                     }
                 });
             }

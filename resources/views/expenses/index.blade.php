@@ -31,7 +31,7 @@
                     <tr>
                         <td class="fw-medium">{{ $expense->description }}</td>
                         <td>{{ $expense->category ?? 'N/A' }}</td>
-                        <td>{{ number_format($expense->amount, 0) }}</td>
+                        <td>{{ formatCurrency($expense->amount) }}</td>
                         <td><small>{{ $expense->date->format('d M Y') }}</small></td>
                         <td>{{ $expense->createdBy->name ?? 'N/A' }}</td>
                         <td class="text-end">

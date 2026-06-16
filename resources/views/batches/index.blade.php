@@ -40,7 +40,7 @@
                         <td class="text-end">
                             <span class="badge bg-{{ $batch->remaining > 0 ? 'success' : 'secondary' }}">{{ number_format($batch->remaining) }}</span>
                         </td>
-                        <td class="text-end">{{ number_format($batch->cost_price) }}</td>
+                        <td class="text-end">{{ formatCurrency($batch->cost_price) }}</td>
                         <td>{{ $batch->supplier->name ?? 'N/A' }}</td>
                         <td>{{ $batch->expiry_date?->format('d M Y') ?? 'N/A' }}</td>
                         <td class="text-end">

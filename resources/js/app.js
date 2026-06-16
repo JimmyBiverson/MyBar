@@ -14,10 +14,13 @@ window.Swal = Swal;
 window.Chart = Chart;
 
 window.formatCurrency = function(value) {
-    const settings = window.currencySettings || { symbol: 'UGX', position: 'before', decimals: 0 };
-    const num = parseFloat(value) || 0;
-    const formatted = num.toFixed(settings.decimals);
-    return settings.position === 'before' ? settings.symbol + ' ' + formatted : formatted + ' ' + settings.symbol;
+    const s = window.currencySettings || { symbol: 'UGX', position: 'before', thousand_separator: ',', decimal_separator: '.', decimal_digits: 0 };
+    const val = parseFloat(value) || 0;
+    const formatted = val.toFixed(s.decimal_digits || 0)
+        .replace(/\B(?=(\d{3})+(?!\d))/g, s.thousand_separator || ',');
+    return s.position === 'before'
+        ? s.symbol + ' ' + formatted
+        : formatted + ' ' + s.symbol;
 };
 
 window.cacheAppData = function(products, categories, settings) {

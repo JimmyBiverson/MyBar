@@ -61,7 +61,7 @@
             <tr>
                 <td class="item-name">{{ $item->product->name ?? $item->product_name ?? 'N/A' }}</td>
                 <td class="qty">{{ $item->qty }}</td>
-                <td class="price">{{ number_format($item->subtotal ?? ($item->price * $item->qty), 0) }}</td>
+                <td class="price">{{ formatCurrency($item->subtotal ?? ($item->price * $item->qty)) }}</td>
             </tr>
             @endforeach
         </tbody>
@@ -70,18 +70,18 @@
     <div class="divider"></div>
 
     <table>
-        <tr><td>Subtotal</td><td class="right">{{ number_format($bill->subtotal ?? $bill->total, 0) }}</td></tr>
+        <tr><td>Subtotal</td><td class="right">{{ formatCurrency($bill->subtotal ?? $bill->total) }}</td></tr>
         @if($bill->discount > 0)
-        <tr><td>Discount</td><td class="right">-{{ number_format($bill->discount, 0) }}</td></tr>
+        <tr><td>Discount</td><td class="right">-{{ formatCurrency($bill->discount) }}</td></tr>
         @endif
 
         @if($bill->service_charge > 0)
-        <tr><td>Service Charge</td><td class="right">{{ number_format($bill->service_charge, 0) }}</td></tr>
+        <tr><td>Service Charge</td><td class="right">{{ formatCurrency($bill->service_charge) }}</td></tr>
         @endif
-        <tr class="total-row"><td>Total</td><td class="right grand-total">{{ number_format($bill->total, 0) }}</td></tr>
-        <tr><td>Paid ({{ ucfirst($bill->payment_method ?? 'Cash') }})</td><td class="right">{{ number_format($bill->paid, 0) }}</td></tr>
+        <tr class="total-row"><td>Total</td><td class="right grand-total">{{ formatCurrency($bill->total) }}</td></tr>
+        <tr><td>Paid ({{ ucfirst($bill->payment_method ?? 'Cash') }})</td><td class="right">{{ formatCurrency($bill->paid) }}</td></tr>
         @if($bill->balance > 0)
-        <tr><td>Balance</td><td class="right">{{ number_format($bill->balance, 0) }}</td></tr>
+        <tr><td>Balance</td><td class="right">{{ formatCurrency($bill->balance) }}</td></tr>
         @endif
     </table>
 

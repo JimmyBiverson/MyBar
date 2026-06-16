@@ -30,6 +30,8 @@ Implement cashier and waiter payment processing with role-based rights, customer
 - **Waiter Inline Offline Ordering & Payments**: Configured the waiter's primary Alpine.js form and payment modal to intercept actions offline, write to the queue, and show local notifications.
 - **Dynamic Chart Palettes**: Integrated the database accent color theme setting directly into Chart.js dataset configurations (Sales Trend, Category Sales, and Payment Methods) on the dashboard view.
 - **Kitchen Flow Optimization**: Reduced the kitchen display polling interval to 10 seconds for real-time coordination, and resolved the initial sound alert loop bug.
+- **Dynamic PWA Manifest**: Moved `manifest.json` from static file to a dynamic route (`GET /manifest.json` → `AppController::manifest`). Reads favicon from settings and uses it as the PWA icon, falling back to `/mybar_icon.png`.
+- **Dynamic Currency System**: Complete overhaul — currency settings are now properly injected into frontend (`window.currencySettings`) and used by all `formatCurrency()` calls. Created `app/helpers.php` with `formatCurrency()` PHP helper. Added missing settings inputs (currency symbol, thousand/decimal separators, conversion rate). Replaced all `number_format()` calls across 28+ Blade views and controllers with dynamic `formatCurrency()`. Added bulk currency conversion logic in `SettingController::update` that scales all monetary columns by a conversion rate when the admin changes currency.
 
 ### In Progress
 - (none)
@@ -67,3 +69,12 @@ Implement cashier and waiter payment processing with role-based rights, customer
 - `resources/views/partials/sidebar.blade.php` (dynamic sidebar branding + PWA install card + Offline Sync widget)
 - `resources/views/settings/index.blade.php` (added Branding & Theme settings tab + color/file inputs)
 - `resources/views/waiter/create-order.blade.php` (offline order interception and queueing)
+- `app/Models/Setting.php` (clearCache + static array cache)
+- `app/helpers.php` (formatCurrency + currencySymbol PHP helpers)
+- `composer.json` (helpers.php autoload)
+- `database/seeders/SettingSeeder.php` (decimal_digits + separator defaults)
+- `app/Http/Controllers/AppController.php` (dynamic manifest)
+- `public/manifest.json` (removed)
+- `resources/js/app.js` (fixed global formatCurrency)
+- `resources/views/receipts/pdf.blade.php` (formatCurrency)
+- `resources/views/receipts/thermal.blade.php` (formatCurrency)

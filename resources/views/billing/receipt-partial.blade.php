@@ -37,29 +37,29 @@
             <tr>
                 <td>{{ $item->product->name ?? 'N/A' }}</td>
                 <td class="r-qty">{{ $item->quantity }}</td>
-                <td class="r-price">{{ number_format($item->subtotal, 0) }}</td>
+                <td class="r-price">{{ formatCurrency($item->subtotal) }}</td>
             </tr>
             @endforeach
         </tbody>
     </table>
     <div class="r-divider"></div>
     <table>
-        <tr><td class="r-label">Subtotal</td><td class="r-price">{{ number_format($bill->subtotal ?? $bill->total_amount, 0) }}</td></tr>
+        <tr><td class="r-label">Subtotal</td><td class="r-price">{{ formatCurrency($bill->subtotal ?? $bill->total_amount) }}</td></tr>
         @if($bill->discount > 0)
-        <tr><td class="r-label">Discount</td><td class="r-price">-{{ number_format($bill->discount, 0) }}</td></tr>
+        <tr><td class="r-label">Discount</td><td class="r-price">-{{ formatCurrency($bill->discount) }}</td></tr>
         @endif
 
         @if($bill->tax_amount > 0)
-        <tr><td class="r-label">{{ \App\Models\Setting::get('tax_label', 'VAT') }}</td><td class="r-price">{{ number_format($bill->tax_amount, 0) }}</td></tr>
+        <tr><td class="r-label">{{ \App\Models\Setting::get('tax_label', 'VAT') }}</td><td class="r-price">{{ formatCurrency($bill->tax_amount) }}</td></tr>
         @endif
 
         @if($bill->service_charge > 0)
-        <tr><td class="r-label">Service Charge</td><td class="r-price">{{ number_format($bill->service_charge, 0) }}</td></tr>
+        <tr><td class="r-label">Service Charge</td><td class="r-price">{{ formatCurrency($bill->service_charge) }}</td></tr>
         @endif
-        <tr class="r-total-row"><td>Total</td><td class="r-price r-grand-total">{{ number_format($bill->total_amount, 0) }}</td></tr>
-        <tr><td class="r-label">Paid ({{ ucfirst(str_replace('_', ' ', $bill->payment_method ?? 'Cash')) }})</td><td class="r-price">{{ number_format($bill->paid_amount ?? $bill->total_amount, 0) }}</td></tr>
+        <tr class="r-total-row"><td>Total</td><td class="r-price r-grand-total">{{ formatCurrency($bill->total_amount) }}</td></tr>
+        <tr><td class="r-label">Paid ({{ ucfirst(str_replace('_', ' ', $bill->payment_method ?? 'Cash')) }})</td><td class="r-price">{{ formatCurrency($bill->paid_amount ?? $bill->total_amount) }}</td></tr>
         @if($bill->change_amount > 0)
-        <tr><td class="r-label">Change</td><td class="r-price">{{ number_format($bill->change_amount, 0) }}</td></tr>
+        <tr><td class="r-label">Change</td><td class="r-price">{{ formatCurrency($bill->change_amount) }}</td></tr>
         @endif
     </table>
     <div class="r-divider"></div>

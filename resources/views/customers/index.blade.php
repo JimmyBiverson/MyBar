@@ -28,7 +28,7 @@
                         <td class="fw-medium">{{ $customer->name }}</td>
                         <td>{{ $customer->email ?? 'N/A' }}</td>
                         <td>{{ $customer->phone ?? 'N/A' }}</td>
-                        <td>{{ number_format($customer->total_spent ?? 0) }}</td>
+                        <td>{{ formatCurrency($customer->total_spent ?? 0) }}</td>
                         <td>{{ $customer->orders_count ?? $customer->orders()->count() }}</td>
                         <td class="text-end">
                             <a href="{{ route('customers.edit', $customer->id) }}" class="btn btn-sm btn-outline-primary"><i class="fas fa-edit"></i></a>

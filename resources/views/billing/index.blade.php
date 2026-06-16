@@ -22,7 +22,7 @@
                 <div>
                     <div class="fs-4 fw-bold">{{ $todayStats->waiter_count ?? 0 }}</div>
                     <div class="small opacity-75">by Waiters</div>
-                    <div class="small opacity-75">{{ number_format($todayStats->waiter_total ?? 0, 0) }} UGX</div>
+                    <div class="small opacity-75">{{ formatCurrency($todayStats->waiter_total ?? 0) }}</div>
                 </div>
             </div>
         </div>
@@ -34,7 +34,7 @@
                 <div>
                     <div class="fs-4 fw-bold">{{ $todayStats->cashier_count ?? 0 }}</div>
                     <div class="small opacity-75">by Cashiers</div>
-                    <div class="small opacity-75">{{ number_format($todayStats->cashier_total ?? 0, 0) }} UGX</div>
+                    <div class="small opacity-75">{{ formatCurrency($todayStats->cashier_total ?? 0) }}</div>
                 </div>
             </div>
         </div>
@@ -44,7 +44,7 @@
             <div class="card-body d-flex align-items-center gap-3">
                 <i class="fas fa-coins fa-2x opacity-50"></i>
                 <div>
-                    <div class="fs-4 fw-bold">{{ number_format(($todayStats->waiter_total ?? 0) + ($todayStats->cashier_total ?? 0), 0) }}</div>
+                    <div class="fs-4 fw-bold">{{ formatCurrency(($todayStats->waiter_total ?? 0) + ($todayStats->cashier_total ?? 0)) }}</div>
                     <div class="small opacity-75">Today's Total UGX</div>
                 </div>
             </div>
@@ -97,8 +97,8 @@
                         <td class="fw-medium">#{{ $bill->invoice_no ?? $bill->id }}</td>
                         <td>{{ $bill->customer->name ?? 'Walk-in' }}</td>
                         <td>{{ $bill->items_count ?? $bill->items->count() }}</td>
-                        <td>{{ number_format($bill->total, 0) }}</td>
-                        <td>{{ number_format($bill->paid, 0) }}</td>
+                        <td>{{ formatCurrency($bill->total) }}</td>
+                        <td>{{ formatCurrency($bill->paid) }}</td>
                         <td>
                             @php
                                 $methodIcons = ['cash' => 'fa-money-bill', 'mobile_money' => 'fa-mobile-screen', 'card' => 'fa-credit-card'];

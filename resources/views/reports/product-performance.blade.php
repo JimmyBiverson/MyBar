@@ -38,10 +38,10 @@
                         </td>
                         <td class="text-end">{{ $prod->current_stock ?? 0 }}</td>
                         <td class="text-end">{{ (int) ($item->total_qty ?? 0) }}</td>
-                        <td class="text-end">{{ number_format((float) ($item->total_revenue ?? 0), 0) }}</td>
-                        <td class="text-end">{{ number_format((float) ($item->total_cost ?? 0), 0) }}</td>
+                        <td class="text-end">{{ formatCurrency((float) ($item->total_revenue ?? 0)) }}</td>
+                        <td class="text-end">{{ formatCurrency((float) ($item->total_cost ?? 0)) }}</td>
                         <td class="text-end" style="color:{{ ($item->total_profit ?? 0) >= 0 ? '#2e7d32' : '#c62828' }}">
-                            {{ number_format((float) ($item->total_profit ?? 0), 0) }}
+                            {{ formatCurrency((float) ($item->total_profit ?? 0)) }}
                         </td>
                         <td class="text-end">{{ $item->margin ?? 0 }}%</td>
                     </tr>

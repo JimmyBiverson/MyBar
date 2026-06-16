@@ -28,11 +28,11 @@
     </div>
 
     <table class="summary-table">
-        <tr><td><strong>Total Revenue</strong></td><td class="text-right text-success">UGX {{ number_format($total_revenue ?? 0, 0) }}</td></tr>
-        <tr><td><strong>Cost of Goods Sold</strong></td><td class="text-right text-danger">UGX {{ number_format(($total_revenue ?? 0) - ($gross_profit ?? $net_profit ?? 0) - ($total_expenses ?? 0), 0) }}</td></tr>
-        <tr class="total-row"><td>Gross Profit</td><td class="text-right">UGX {{ number_format(($total_revenue ?? 0) - (($total_revenue ?? 0) - ($gross_profit ?? $net_profit ?? 0) - ($total_expenses ?? 0)), 0) }}</td></tr>
-        <tr><td><strong>Total Expenses</strong></td><td class="text-right text-danger">UGX {{ number_format($total_expenses ?? 0, 0) }}</td></tr>
-        <tr class="total-row"><td>Net Profit / Loss</td><td class="text-right" style="color: {{ ($net_profit ?? 0) >= 0 ? '#2e7d32' : '#c62828' }}">UGX {{ number_format($net_profit ?? 0, 0) }}</td></tr>
+        <tr><td><strong>Total Revenue</strong></td><td class="text-right text-success">{{ formatCurrency($total_revenue ?? 0) }}</td></tr>
+        <tr><td><strong>Cost of Goods Sold</strong></td><td class="text-right text-danger">{{ formatCurrency(($total_revenue ?? 0) - ($gross_profit ?? $net_profit ?? 0) - ($total_expenses ?? 0)) }}</td></tr>
+        <tr class="total-row"><td>Gross Profit</td><td class="text-right">{{ formatCurrency(($total_revenue ?? 0) - (($total_revenue ?? 0) - ($gross_profit ?? $net_profit ?? 0) - ($total_expenses ?? 0))) }}</td></tr>
+        <tr><td><strong>Total Expenses</strong></td><td class="text-right text-danger">{{ formatCurrency($total_expenses ?? 0) }}</td></tr>
+        <tr class="total-row"><td>Net Profit / Loss</td><td class="text-right" style="color: {{ ($net_profit ?? 0) >= 0 ? '#2e7d32' : '#c62828' }}">{{ formatCurrency($net_profit ?? 0) }}</td></tr>
     </table>
 
     <div class="section-title">Revenue Breakdown</div>
@@ -41,9 +41,9 @@
             <tr><th>Source</th><th class="text-right">Amount</th><th class="text-right">%</th></tr>
         </thead>
         <tbody>
-            <tr><td>Product Sales</td><td class="text-right">UGX {{ number_format($product_sales ?? 0, 0) }}</td><td class="text-right">{{ $product_sales_percent ?? 0 }}%</td></tr>
-            <tr><td>Service Charges</td><td class="text-right">UGX {{ number_format($service_charges ?? 0, 0) }}</td><td class="text-right">{{ $service_charges_percent ?? 0 }}%</td></tr>
-            <tr style="font-weight:bold"><td>Total Revenue</td><td class="text-right">UGX {{ number_format($total_revenue ?? 0, 0) }}</td><td class="text-right">100%</td></tr>
+            <tr><td>Product Sales</td><td class="text-right">{{ formatCurrency($product_sales ?? 0) }}</td><td class="text-right">{{ $product_sales_percent ?? 0 }}%</td></tr>
+            <tr><td>Service Charges</td><td class="text-right">{{ formatCurrency($service_charges ?? 0) }}</td><td class="text-right">{{ $service_charges_percent ?? 0 }}%</td></tr>
+            <tr style="font-weight:bold"><td>Total Revenue</td><td class="text-right">{{ formatCurrency($total_revenue ?? 0) }}</td><td class="text-right">100%</td></tr>
         </tbody>
     </table>
 
@@ -56,12 +56,12 @@
             @forelse($expense_categories ?? [] as $cat)
             <tr>
                 <td>{{ $cat['name'] ?? 'N/A' }}</td>
-                <td class="text-right">UGX {{ number_format($cat['total'] ?? 0, 0) }}</td>
+                <td class="text-right">{{ formatCurrency($cat['total'] ?? 0) }}</td>
             </tr>
             @empty
             <tr><td colspan="2" style="text-align:center;color:#999">No expenses recorded</td></tr>
             @endforelse
-            <tr style="font-weight:bold"><td>Total Expenses</td><td class="text-right">UGX {{ number_format($total_expenses ?? 0, 0) }}</td></tr>
+            <tr style="font-weight:bold"><td>Total Expenses</td><td class="text-right">{{ formatCurrency($total_expenses ?? 0) }}</td></tr>
         </tbody>
     </table>
 
