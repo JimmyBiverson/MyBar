@@ -6,6 +6,17 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title') - {{ \App\Models\Setting::get('business_name', 'MyBar POS') }}</title>
 
+    <meta property="og:title" content="@yield('title') - {{ \App\Models\Setting::get('business_name', 'MyBar POS') }}" />
+    <meta property="og:description" content="{{ \App\Models\Setting::get('business_name', 'MyBar POS') }} - Point of Sale System" />
+    <meta property="og:image" content="{{ \App\Models\Setting::get('site_logo') ?: \App\Models\Setting::get('favicon', '/mybar_icon.png') }}" />
+    <meta property="og:url" content="{{ url()->current() }}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="{{ \App\Models\Setting::get('business_name', 'MyBar POS') }}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@yield('title') - {{ \App\Models\Setting::get('business_name', 'MyBar POS') }}" />
+    <meta name="twitter:description" content="{{ \App\Models\Setting::get('business_name', 'MyBar POS') }} - Point of Sale System" />
+    <meta name="twitter:image" content="{{ \App\Models\Setting::get('site_logo') ?: \App\Models\Setting::get('favicon', '/mybar_icon.png') }}" />
+
     @if(\App\Models\Setting::get('favicon'))
         <link rel="icon" type="image/x-icon" href="{{ \App\Models\Setting::get('favicon') }}">
     @else
@@ -92,6 +103,27 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Refresh CSRF token before any form submit to prevent 419 on expired sessions
+        document.addEventListener('submit', function(e) {
+            const form = e.target;
+            if (form.method?.toLowerCase() !== 'post') return;
+
+            e.preventDefault();
+            fetch('/csrf-token')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var input = form.querySelector('input[name="_token"]');
+                    if (input) input.value = data.token;
+                    var meta = document.querySelector('meta[name="csrf-token"]');
+                    if (meta) meta.content = data.token;
+                    HTMLFormElement.prototype.submit.call(form);
+                })
+                .catch(function() {
+                    HTMLFormElement.prototype.submit.call(form);
+                });
+        });
+    </script>
     @stack('scripts')
 </body>
 </html>

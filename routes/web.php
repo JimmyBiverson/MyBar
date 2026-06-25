@@ -28,6 +28,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/manifest.json', [AppController::class, 'manifest'])->name('manifest');
 
+Route::get('/csrf-token', function () {
+    return response()->json(['token' => csrf_token()]);
+});
+
 Route::get('/offline', function () {
     return view('offline');
 });

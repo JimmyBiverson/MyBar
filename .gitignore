@@ -21,6 +21,10 @@ yarn-error.log
 /.vscode
 /.zed
 
+# Database export
+/database/mybar_mysql_export.sql
+/_export_db.php
+
 # Kiro specs and temporary files
 /.kiro
 TASK_*_COMPLETION_SUMMARY.md

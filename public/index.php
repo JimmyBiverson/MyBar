@@ -4,7 +4,7 @@ use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
-// Fix SCRIPT_NAME for subdirectory (e.g., http://localhost/mybar/)
+// Fix SCRIPT_NAME for subdirectory — disabled for production root-domain deployment
 if (str_contains($_SERVER['SCRIPT_NAME'] ?? '', '/public/')) {
     $_SERVER['SCRIPT_NAME'] = str_replace('/public/', '/', $_SERVER['SCRIPT_NAME']);
 }
