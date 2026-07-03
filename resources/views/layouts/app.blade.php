@@ -588,11 +588,11 @@
         }
     </script>
 
-    {{-- Auto-lock after 30 min of inactivity --}}
+    {{-- Auto-lock after inactivity (admin-configurable) --}}
     <script>
         (function() {
             let timeout;
-            const INACTIVITY_MS = 1800000;
+            const INACTIVITY_MS = {{ \App\Models\Setting::get('auto_lock_minutes', 30) }} * 60 * 1000;
 
             function resetTimer() {
                 if (timeout) clearTimeout(timeout);
@@ -621,6 +621,31 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        window.confirmDelete = function(url) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This action cannot be undone!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                confirmButtonText: 'Yes, delete it!',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const btn = Swal.getConfirmButton();
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Deleting...';
+                    }
+                    const form = document.getElementById('deleteForm');
+                    if (form) {
+                        form.action = url;
+                        form.submit();
+                    }
+                }
+            });
+        };
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
     <script>

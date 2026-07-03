@@ -214,7 +214,7 @@
                     <div class="mb-3">
                         <label class="form-label small">Amount Received</label>
                         <div class="input-group">
-                            <span class="input-group-text">UGX</span>
+                            <span class="input-group-text">{{ \App\Models\Setting::get('currency_symbol', 'UGX') }}</span>
                             <input type="number" class="form-control form-control-lg" x-model="amountReceived" min="0" step="any" placeholder="0.00">
                         </div>
                     </div>

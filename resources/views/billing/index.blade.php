@@ -45,7 +45,7 @@
                 <i class="fas fa-coins fa-2x opacity-50"></i>
                 <div>
                     <div class="fs-4 fw-bold">{{ formatCurrency(($todayStats->waiter_total ?? 0) + ($todayStats->cashier_total ?? 0)) }}</div>
-                    <div class="small opacity-75">Today's Total UGX</div>
+                    <div class="small opacity-75">Today's Total {{ \App\Models\Setting::get('currency_symbol', 'UGX') }}</div>
                 </div>
             </div>
         </div>

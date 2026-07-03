@@ -130,6 +130,11 @@
                                 <option value="sw" {{ ($settings['language'] ?? '') === 'sw' ? 'selected' : '' }}>Swahili</option>
                             </select>
                         </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Auto Lock Timeout (minutes)</label>
+                            <input type="number" class="form-control" name="auto_lock_minutes" value="{{ old('auto_lock_minutes', $settings['auto_lock_minutes'] ?? 30) }}" min="1" max="999">
+                            <small class="text-muted">System will auto-lock after this many minutes of inactivity.</small>
+                        </div>
                     </div>
                 </div>
             </div>

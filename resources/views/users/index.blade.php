@@ -55,10 +55,6 @@
 @endsection
 @push('scripts')
 <script>
-    function confirmDelete(url) {
-        Swal.fire({ title:'Are you sure?', text:"This action cannot be undone!", icon:'warning', showCancelButton:true, confirmButtonColor:'#dc3545', confirmButtonText:'Yes, delete it!' })
-        .then((r) => { if(r.isConfirmed) { const f = document.getElementById('deleteForm'); f.action = url; f.submit(); } });
-    }
     document.getElementById('tableSearch')?.addEventListener('keyup', function() {
         const v = this.value.toLowerCase();
         document.querySelectorAll('tbody tr').forEach(tr => tr.style.display = tr.textContent.toLowerCase().includes(v) ? '' : 'none');

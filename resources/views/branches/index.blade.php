@@ -23,7 +23,7 @@
                     <tr><th>Name</th><th>Location</th><th>Phone</th><th>Email</th><th>Status</th><th class="text-end">Actions</th></tr>
                 </thead>
                 <tbody>
-                    @forelse($branches as $branch)
+                    @forelse($branches ?? [] as $branch)
                     <tr>
                         <td class="fw-medium">{{ $branch->name }}</td>
                         <td>{{ $branch->location ?? 'N/A' }}</td>

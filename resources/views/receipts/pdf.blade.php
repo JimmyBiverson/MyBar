@@ -97,7 +97,7 @@
     </div>
 
     <div class="amount-word">
-        Amount in words: {{ number_to_words($bill->total) ?? number_format($bill->total, 0) }}
+        Amount in words: {{ number_to_words($bill->total) ?? formatCurrency($bill->total) }}
     </div>
 
     <div class="footer">

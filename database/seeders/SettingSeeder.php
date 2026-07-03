@@ -33,6 +33,7 @@ class SettingSeeder extends Seeder
             ['key' => 'low_stock_threshold', 'value' => '10', 'group_name' => 'inventory'],
             ['key' => 'medium_stock_threshold', 'value' => '20', 'group_name' => 'inventory'],
             ['key' => 'enable_negative_stock', 'value' => '0', 'group_name' => 'inventory'],
+            ['key' => 'auto_lock_minutes', 'value' => '30', 'group_name' => 'general'],
         ];
 
         foreach ($settings as $setting) {

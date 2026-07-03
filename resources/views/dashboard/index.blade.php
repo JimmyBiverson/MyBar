@@ -533,7 +533,7 @@
                         data: {
                             labels: labels || [],
                             datasets: [{
-                                label: 'Sales (UGX)',
+                                label: window.currencySettings ? `Sales (${window.currencySettings.symbol})` : 'Sales (UGX)',
                                 data: nums,
                                 backgroundColor: '{{ \App\Models\Setting::get('accent_color', '#7367f0') }}',
                                 borderRadius: 4,
@@ -559,7 +559,7 @@
                                     grid: { color: 'rgba(0,0,0,0.05)' },
                                     ticks: {
                                         maxTicksLimit: 6,
-                                        callback: v => { const s = window.currencySettings||{symbol:'UGX'}; return s.symbol+' '+self.abbreviate(v); }
+                                        callback: v => { const s = window.currencySettings||{symbol:'{{ \App\Models\Setting::get('currency_symbol', 'UGX') }}'}; return s.symbol+' '+self.abbreviate(v); }
                                     }
                                 },
                                 x: { grid: { display: false }, ticks: { maxTicksLimit: 10, maxRotation: 0 } }

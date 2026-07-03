@@ -129,8 +129,8 @@
                 </div>
             </div>
 
-            <div class="card cart-panel">
-                <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card cart-panel" x-data="{ cartOpen: false }" :class="{ collapsed: !cartOpen }">
+                <div class="card-header d-flex justify-content-between align-items-center" @click="cartOpen = !cartOpen" role="button">
                     <div>
                         <i class="fas fa-shopping-cart me-2"></i>Cart
                         <template x-if="activeOrderId">
@@ -143,7 +143,10 @@
                             <span class="badge bg-success ms-1">Accepted</span>
                         </template>
                     </div>
-                    <span class="badge bg-primary" x-text="cart.length + ' items'"></span>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary" x-text="cart.length + ' items'"></span>
+                        <i class="fas fa-chevron-up transition-rotate" :class="{ 'rotate-180': !cartOpen }"></i>
+                    </div>
                 </div>
                 <div class="card-body p-0">
                     @include('pos.partials.cart')
@@ -219,7 +222,20 @@
     }
     .cart-panel .card-body { max-height: calc(100vh - 260px); overflow-y: auto; }
     .pos-container .btn-sm { font-size: 0.78rem; }
-    @media (max-width: 991px) { .cart-panel { position: fixed; bottom: 0; left: 0; right: 0; z-index: 1050; border-radius: 16px 16px 0 0; max-height: 60vh; } }
+    .transition-rotate { transition: transform 0.3s ease; }
+    .rotate-180 { transform: rotate(180deg); }
+    @media (max-width: 991px) {
+        .pos-container { padding-bottom: 56px; }
+        .cart-panel {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            z-index: 1050; border-radius: 16px 16px 0 0;
+            transition: transform 0.3s ease;
+            max-height: 60vh;
+        }
+        .cart-panel.collapsed { transform: translateY(calc(100% - 52px)); }
+        .cart-panel.collapsed .card-body { display: none; }
+        .cart-panel .card-body { max-height: calc(60vh - 52px); overflow-y: auto; }
+    }
     .order-item-checkbox { width: 18px; height: 18px; cursor: pointer; }
     .item-unavailable { opacity: 0.5; text-decoration: line-through; }
     @keyframes pulse-alert {

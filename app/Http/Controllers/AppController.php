@@ -10,8 +10,10 @@ class AppController extends Controller
     public function manifest()
     {
         $favicon = Setting::get('favicon', '/mybar_icon.png');
+        $siteLogo = Setting::get('site_logo');
+        $icon192 = $favicon;
+        $icon512 = $siteLogo ?: $favicon;
 
-        $extension = pathinfo($favicon, PATHINFO_EXTENSION);
         $mimeTypes = [
             'png' => 'image/png',
             'ico' => 'image/x-icon',
@@ -21,7 +23,8 @@ class AppController extends Controller
             'gif' => 'image/gif',
             'webp' => 'image/webp',
         ];
-        $type = $mimeTypes[$extension] ?? 'image/png';
+        $type192 = $mimeTypes[pathinfo($icon192, PATHINFO_EXTENSION)] ?? 'image/png';
+        $type512 = $mimeTypes[pathinfo($icon512, PATHINFO_EXTENSION)] ?? 'image/png';
 
         return response()->json([
             'name' => config('app.name', 'MyBar POS'),
@@ -35,15 +38,15 @@ class AppController extends Controller
             'description' => 'Bar & Restaurant Point of Sale System',
             'icons' => [
                 [
-                    'src' => $favicon,
+                    'src' => $icon192,
                     'sizes' => '192x192',
-                    'type' => $type,
+                    'type' => $type192,
                     'purpose' => 'any',
                 ],
                 [
-                    'src' => $favicon,
+                    'src' => $icon512,
                     'sizes' => '512x512',
-                    'type' => $type,
+                    'type' => $type512,
                     'purpose' => 'any maskable',
                 ],
             ],
@@ -69,7 +72,11 @@ class AppController extends Controller
         $url = url('/');
         $name = config('app.name', 'MyBar POS');
 
-        $content = "[InternetShortcut]\r\nURL={$url}\r\nIDList=\r\nIconIndex=0\r\nIconFile={$url}/favicon.ico\r\n";
+        $favicon = Setting::get('favicon');
+        $siteLogo = Setting::get('site_logo');
+        $iconUrl = $favicon ? url($favicon) : ($siteLogo ? url($siteLogo) : $url . '/mybar_icon.png');
+
+        $content = "[InternetShortcut]\r\nURL={$url}\r\nIDList=\r\nIconIndex=0\r\nIconFile={$iconUrl}\r\n";
 
         return response($content, 200, [
             'Content-Type' => 'application/internet-shortcut',

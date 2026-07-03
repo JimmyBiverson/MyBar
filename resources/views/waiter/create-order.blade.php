@@ -87,7 +87,7 @@
                 cachedProducts.forEach(p => {
                     const opt = document.createElement('option');
                     opt.value = p.id;
-                    opt.textContent = `${p.name} (${parseFloat(p.selling_price).toLocaleString()})`;
+                    opt.textContent = `${p.name} (${window.formatCurrency ? window.formatCurrency(p.selling_price) : parseFloat(p.selling_price).toLocaleString()})`;
                     if (p.id == selectedVal) opt.selected = true;
                     select.appendChild(opt);
                 });

@@ -174,7 +174,7 @@
             </div>
             <h6 class="small fw-semibold text-center mb-1">Desktop App</h6>
             <p class="x-small text-muted text-center mb-2" style="font-size: 0.72rem; line-height: 1.2;">
-                Install as app or create a shortcut for one-click access.
+                Install as app or create a shortcut with your custom branding icon.
             </p>
             <button id="pwa-install-btn" class="btn btn-sm btn-outline-light w-100 mb-1" style="display:none;">
                 <i class="fas fa-download me-1"></i> Install as App
